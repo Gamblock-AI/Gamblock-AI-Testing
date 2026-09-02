@@ -23,7 +23,7 @@ repositories link here instead of copying test results.
 | `model/` | Model test entrypoint and scope |
 | `<technology>/report.md` | One canonical report per technology |
 | `flutter/config/` and `flutter/evidence/` | Android matrix and public records |
-| `docs/ai/` | AI context and Android/Firebase runbook |
+| `docs/ai/` | AI context, Android/Firebase service context, and runbooks |
 
 ## Run from the umbrella
 
@@ -47,7 +47,7 @@ an additional report. See
 
 Use the Research flavor only on a disposable emulator, cloud device, or loaner
 device. The complete matrix, Firebase Device Streaming guidance, manual system
-UI workflow, and evidence promotion rules are in
+UI workflow, cross-OEM problem context, Firebase service context, and evidence promotion rules are in
 [`docs/ai/android-anti-uninstall-testing.md`](docs/ai/android-anti-uninstall-testing.md).
 
 The runner does not reserve a Firebase device automatically. A Firebase or

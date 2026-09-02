@@ -39,7 +39,28 @@ FORBIDDEN_KEYS = {
 }
 RAW_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".log", ".trace", ".pcap"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+LABEL_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 URL_PATTERN = re.compile(r"https?://", re.IGNORECASE)
+DEVICE_REGISTER_FIELDS = {
+    "device_alias",
+    "display_name",
+    "oem_family",
+    "source",
+    "service",
+    "access_path",
+    "evidence_status",
+    "android_api",
+    "build_mode",
+    "retest_required",
+}
+DEVICE_REGISTER_ENUMS = {
+    "oem_family": {"aosp", "samsung", "xiaomi_redmi", "oppo_realme", "vivo", "other"},
+    "source": {"firebase_test_lab", "local_physical_device"},
+    "service": {"firebase_test_lab_android_device_streaming", "local_physical_device"},
+    "access_path": {"android_studio_remote_devices", "local_adb"},
+    "evidence_status": {"valid_evidence", "pending_retest"},
+    "build_mode": {"debug", "profile", "release"},
+}
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -75,6 +96,74 @@ def forbidden_nested_values(value: Any, path: str = "") -> list[str]:
             errors.extend(forbidden_nested_values(child, f"{path}[{index}]"))
     elif isinstance(value, str) and URL_PATTERN.search(value):
         errors.append(f"URL-like public evidence value at {path}")
+    return errors
+
+
+def validate_device_register(path: Path) -> list[str]:
+    errors: list[str] = []
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{path}: invalid device register: {error}"]
+    if not isinstance(value, dict):
+        return [f"{path}: device register must be an object"]
+    if set(value) - {"schema_version", "scope", "devices"}:
+        errors.append(f"{path}: unexpected device register fields")
+    if value.get("schema_version") != 1:
+        errors.append(f"{path}: schema_version must be 1")
+    if value.get("scope") != "android_research_anti_uninstall":
+        errors.append(f"{path}: scope must be android_research_anti_uninstall")
+    devices = value.get("devices")
+    if not isinstance(devices, list):
+        return [*errors, f"{path}: devices must be a list"]
+
+    aliases: set[str] = set()
+    for index, device in enumerate(devices):
+        prefix = f"{path}:devices[{index}]"
+        if not isinstance(device, dict):
+            errors.append(f"{prefix}: device must be an object")
+            continue
+        unexpected = set(device) - DEVICE_REGISTER_FIELDS
+        if unexpected:
+            errors.append(f"{prefix}: unexpected fields {sorted(unexpected)}")
+        for field in ("device_alias", "display_name", "oem_family", "source", "service", "access_path", "evidence_status", "retest_required"):
+            if field not in device:
+                errors.append(f"{prefix}: missing {field}")
+        alias = device.get("device_alias")
+        if not isinstance(alias, str) or LABEL_PATTERN.fullmatch(alias) is None:
+            errors.append(f"{prefix}: device_alias must be an ASCII label")
+        elif alias in aliases:
+            errors.append(f"{prefix}: duplicate device_alias {alias!r}")
+        else:
+            aliases.add(alias)
+        display_name = device.get("display_name")
+        if not isinstance(display_name, str) or not display_name.strip() or "|" in display_name or "\n" in display_name:
+            errors.append(f"{prefix}: display_name must be a non-empty markdown-safe string")
+        for field, choices in DEVICE_REGISTER_ENUMS.items():
+            if field == "build_mode" and device.get(field) is None:
+                continue
+            if device.get(field) not in choices:
+                errors.append(f"{prefix}: {field} must be one of {sorted(choices)}")
+        if device.get("source") == "firebase_test_lab" and device.get("service") != "firebase_test_lab_android_device_streaming":
+            errors.append(f"{prefix}: firebase_test_lab source requires Android Device Streaming service")
+        if device.get("source") == "local_physical_device" and device.get("service") != "local_physical_device":
+            errors.append(f"{prefix}: local_physical_device source requires local_physical_device service")
+        android_api = device.get("android_api")
+        if android_api is not None and (
+            isinstance(android_api, bool) or not isinstance(android_api, int) or not 21 <= android_api <= 99
+        ):
+            errors.append(f"{prefix}: android_api must be null or an integer between 21 and 99")
+        if not isinstance(device.get("retest_required"), bool):
+            errors.append(f"{prefix}: retest_required must be boolean")
+        if device.get("evidence_status") == "valid_evidence" and device.get("retest_required") is not False:
+            errors.append(f"{prefix}: valid_evidence requires retest_required=false")
+        if device.get("evidence_status") == "pending_retest" and device.get("retest_required") is not True:
+            errors.append(f"{prefix}: pending_retest requires retest_required=true")
+        build_mode = device.get("build_mode")
+        if build_mode is not None and build_mode not in DEVICE_REGISTER_ENUMS["build_mode"]:
+            errors.append(f"{prefix}: build_mode must be null or a supported build mode")
+        errors.extend(forbidden_nested_values(device, prefix))
+    errors.extend(forbidden_nested_values(value, str(path)))
     return errors
 
 
@@ -135,6 +224,12 @@ def main() -> int:
                 digest = value["visual_evidence_sha256"]
                 if not isinstance(digest, str) or SHA256_PATTERN.fullmatch(digest) is None:
                     errors.append(f"{path}:{line_number}: invalid visual evidence hash")
+
+    device_register = ROOT / "flutter/config/device-register.json"
+    if not device_register.exists():
+        errors.append(f"missing public device register: {device_register.relative_to(ROOT)}")
+    else:
+        errors.extend(validate_device_register(device_register))
 
     if errors:
         print("public evidence verification failed:", file=sys.stderr)

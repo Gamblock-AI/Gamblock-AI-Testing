@@ -28,5 +28,6 @@ This report covers offline model evidence and runtime projection only.
 ## Interpretation limits
 
 Offline replay is not physical browser, Android, or Windows runtime proof.
-A missing matrix cell remains pending. This report contains aggregate
-results only; source code and component unit tests remain in their owners.
+A missing matrix cell remains pending. This report contains aggregate-safe
+results and validated scenario detail where applicable; source code and
+component unit tests remain in their owners.

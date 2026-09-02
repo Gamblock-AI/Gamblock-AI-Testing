@@ -3,6 +3,10 @@
 This runbook is the single operational source for Android anti-uninstall
 testing. It applies only to the Research flavor. The Play flavor intentionally
 does not include Settings, package-installer, or launcher removal monitoring.
+The cross-OEM problem, Firebase Test Lab service context, and current device
+status are documented in [`android-anti-uninstall-context.md`](android-anti-uninstall-context.md).
+Safe device/provenance metadata is maintained in
+[`flutter/config/device-register.json`](../../flutter/config/device-register.json).
 
 ## Test contract
 

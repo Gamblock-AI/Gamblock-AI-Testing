@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-02.4`
+Context version: `2026-09-02.5`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -11,7 +11,7 @@ orchestration and public evidence. It does not own product runtime code.
 |---|---|---|
 | Model and runtime replay | Implemented tooling | Offline/projection evidence only; it is not physical browser, Android, or Windows proof. |
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and the configured p95/sample gate. |
-| Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. |
+| Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. Valid evidence and the retest queue are rendered separately. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
@@ -20,10 +20,12 @@ orchestration and public evidence. It does not own product runtime code.
 1. `AGENTS.md` — repository rules and privacy boundary.
 2. `README.md` — onboarding and commands.
 3. `docs/ai/android-anti-uninstall-testing.md` — device matrix and runbook.
-4. `docs/ai/testing-run-receipt.md` — mandatory test handoff fields.
-5. `docs/ai/manifest.yaml` — context version and validation contract.
-6. `flutter/config/device-matrix.json` — Android coverage requirements.
-7. `docs/config/targets.json` — shared detection and latency targets.
+4. `docs/ai/android-anti-uninstall-context.md` — cross-OEM problem and service context.
+5. `docs/ai/testing-run-receipt.md` — mandatory test handoff fields.
+6. `docs/ai/manifest.yaml` — context version and validation contract.
+7. `flutter/config/device-matrix.json` — Android coverage requirements.
+8. `flutter/config/device-register.json` — safe device/provenance register.
+9. `docs/config/targets.json` — shared detection and latency targets.
 
 The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, and `browser-extention/` describe or contain system-specific checks;

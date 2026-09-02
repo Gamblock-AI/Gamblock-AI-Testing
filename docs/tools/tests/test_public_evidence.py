@@ -54,6 +54,81 @@ def record(**overrides):
 
 
 class PublicEvidenceTest(unittest.TestCase):
+    def test_accepts_safe_device_register(self):
+        value = {
+            "schema_version": 1,
+            "scope": "android_research_anti_uninstall",
+            "devices": [
+                {
+                    "device_alias": "redmi_12c_local_01",
+                    "display_name": "Redmi 12C",
+                    "oem_family": "xiaomi_redmi",
+                    "source": "local_physical_device",
+                    "service": "local_physical_device",
+                    "access_path": "local_adb",
+                    "evidence_status": "pending_retest",
+                    "android_api": None,
+                    "build_mode": None,
+                    "retest_required": True,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "device-register.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            self.assertEqual(PUBLIC.validate_device_register(path), [])
+
+    def test_rejects_result_in_device_register(self):
+        value = {
+            "schema_version": 1,
+            "scope": "android_research_anti_uninstall",
+            "devices": [
+                {
+                    "device_alias": "redmi_12c_local_01",
+                    "display_name": "Redmi 12C",
+                    "oem_family": "xiaomi_redmi",
+                    "source": "local_physical_device",
+                    "service": "local_physical_device",
+                    "access_path": "local_adb",
+                    "evidence_status": "pending_retest",
+                    "android_api": None,
+                    "build_mode": None,
+                    "retest_required": True,
+                    "result": "passed",
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "device-register.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            errors = PUBLIC.validate_device_register(path)
+        self.assertTrue(any("unexpected fields" in error for error in errors))
+
+    def test_rejects_mismatched_device_service(self):
+        value = {
+            "schema_version": 1,
+            "scope": "android_research_anti_uninstall",
+            "devices": [
+                {
+                    "device_alias": "pixel_9_pro_remote_01",
+                    "display_name": "Google Pixel 9 Pro Remote",
+                    "oem_family": "aosp",
+                    "source": "firebase_test_lab",
+                    "service": "local_physical_device",
+                    "access_path": "android_studio_remote_devices",
+                    "evidence_status": "valid_evidence",
+                    "android_api": 35,
+                    "build_mode": "debug",
+                    "retest_required": False,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "device-register.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            errors = PUBLIC.validate_device_register(path)
+        self.assertTrue(any("requires Android Device Streaming" in error for error in errors))
+
     def test_promoter_adds_only_visual_digest(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = pathlib.Path(directory)

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "android_research_anti_uninstall",
+  "devices": [
+    {
+      "device_alias": "pixel_9_pro_remote_01",
+      "display_name": "Google Pixel 9 Pro Remote",
+      "oem_family": "aosp",
+      "source": "firebase_test_lab",
+      "service": "firebase_test_lab_android_device_streaming",
+      "access_path": "android_studio_remote_devices",
+      "evidence_status": "valid_evidence",
+      "android_api": 35,
+      "build_mode": "debug",
+      "retest_required": false
+    },
+    {
+      "device_alias": "redmi_12c_local_01",
+      "display_name": "Redmi 12C",
+      "oem_family": "xiaomi_redmi",
+      "source": "local_physical_device",
+      "service": "local_physical_device",
+      "access_path": "local_adb",
+      "evidence_status": "pending_retest",
+      "android_api": null,
+      "build_mode": null,
+      "retest_required": true
+    }
+  ]
+}

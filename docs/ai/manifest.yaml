@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-02.4"
+context_version: "2026-09-02.5"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -7,7 +7,7 @@ source_of_truth: AGENTS.md
 shared_contracts:
   proposal_authority: 1
   privacy_boundary: 1
-  testing_evidence: 2
+  testing_evidence: 3
 
 canonical:
   instructions: AGENTS.md
@@ -41,6 +41,7 @@ required_context:
   - .cursor/rules/gamblock-ai.mdc
   - docs/ai/README.md
   - docs/ai/android-anti-uninstall-testing.md
+  - docs/ai/android-anti-uninstall-context.md
   - docs/ai/testing-run-receipt.md
   - docs/ai/manifest.yaml
   - docs/config/targets.json
@@ -52,7 +53,9 @@ required_context:
   - docs/tools/verify_public_evidence.py
   - docs/tools/tests/test_public_evidence.py
   - docs/tools/tests/test_runtime_projection.py
+  - docs/tools/tests/test_run_evaluation.py
   - flutter/config/device-matrix.json
+  - flutter/config/device-register.json
   - flutter/evidence/ledger/android-tamper.jsonl
   - flutter/README.md
   - flutter/report.md

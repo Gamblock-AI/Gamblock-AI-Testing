@@ -25,6 +25,7 @@ REPORT_PATHS = {
     "browser-extention": Path("browser-extention/report.md"),
     "model": Path("model/report.md"),
 }
+DEVICE_REGISTER_PATH = TESTING_ROOT / "flutter/config/device-register.json"
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -87,14 +88,34 @@ def pending(name: str, reason: str) -> dict[str, Any]:
     return {"name": name, "status": "pending", "reason": reason}
 
 
-def read_android_summary() -> dict[str, Any]:
+def read_android_evidence() -> tuple[list[dict[str, Any]], list[str], bool]:
     ledger = TESTING_ROOT / "flutter/evidence/ledger/android-tamper.jsonl"
     if not ledger.exists():
-        return pending("android_anti_uninstall", "No promoted Android tamper ledger exists.")
+        return [], [], False
     validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
     records, errors = validator.load_records([ledger])
+    return records, errors, True
+
+
+def read_device_register() -> dict[str, Any]:
+    if not DEVICE_REGISTER_PATH.exists():
+        return {"devices": [], "error": "Device register is unavailable."}
+    try:
+        value = json.loads(DEVICE_REGISTER_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return {"devices": [], "error": f"Device register could not be read: {error}"}
+    if not isinstance(value, dict) or not isinstance(value.get("devices"), list):
+        return {"devices": [], "error": "Device register has an invalid shape."}
+    return value
+
+
+def read_android_summary() -> dict[str, Any]:
+    records, errors, exists = read_android_evidence()
+    if not exists:
+        return pending("android_anti_uninstall", "No promoted Android tamper ledger exists.")
     if errors:
         return {"name": "android_anti_uninstall", "status": "failed", "error_count": len(errors)}
+    validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
     aggregate = validator.summarize(records)
     matrix = json.loads((TESTING_ROOT / "flutter/config/device-matrix.json").read_text(encoding="utf-8"))
     observed_families = {record["oem_family"] for record in records}
@@ -247,14 +268,136 @@ def render_report(title: str, description: str, sections: list[str]) -> str:
         "## Interpretation limits",
         "",
         "Offline replay is not physical browser, Android, or Windows runtime proof.",
-        "A missing matrix cell remains pending. This report contains aggregate",
-        "results only; source code and component unit tests remain in their owners.",
+        "A missing matrix cell remains pending. This report contains aggregate-safe",
+        "results and validated scenario detail where applicable; source code and",
+        "component unit tests remain in their owners.",
         "",
     ])
     return "\n".join(lines)
 
 
-def render_flutter_report(android: dict[str, Any], latency: dict[str, Any], checks: list[dict[str, Any]]) -> str:
+def markdown_value(value: Any) -> str:
+    if value is None or value == "":
+        return "—"
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value).replace("|", "\\|")
+
+
+def transition(record: dict[str, Any], before: str, after: str) -> str:
+    return f"{markdown_value(record.get(before))} → {markdown_value(record.get(after))}"
+
+
+def render_android_evidence_details(
+    records: list[dict[str, Any]],
+    device_register: dict[str, Any],
+) -> list[str]:
+    lines = [
+        "## Android device evidence detail",
+        "",
+        "Only validated public ledger records appear in this table. The result",
+        "column is the evidence assertion status; expected and actual outcomes",
+        "remain separate so an observed warning can be distinguished from a",
+        "blocked uninstall assertion.",
+        "",
+        "| Device | Run / sample | OEM | API | Build | Service | Scenario | Surface | Action / observed | Expected → actual | Grant | Admin | Accessibility | Service state | App after | Recovery (s) | Result |",
+        "|---|---|---|---:|---|---|---|---|---|---|---|---|---|---|---|---:|---|",
+    ]
+    registered = {
+        device.get("device_alias"): device
+        for device in device_register.get("devices", [])
+        if isinstance(device, dict)
+    }
+    for record in sorted(
+        records,
+        key=lambda item: (
+            item["device_alias"],
+            item["scenario"],
+            item["surface"],
+            item["sample_id"],
+        ),
+    ):
+        device = registered.get(record["device_alias"], {})
+        display_name = device.get("display_name", record["device_alias"])
+        service = device.get("service", "not_registered")
+        action = f"{record['action']} / {record['observed_action']}"
+        expected_actual = f"{record['expected_outcome']} → {record['actual_outcome']}"
+        lines.append(
+            "| "
+            + " | ".join(
+                (
+                    markdown_value(display_name),
+                    markdown_value(f"{record['run_id']} / {record['sample_id']}"),
+                    markdown_value(record["oem_family"]),
+                    markdown_value(record["android_api"]),
+                    markdown_value(record["build_mode"]),
+                    markdown_value(service),
+                    markdown_value(record["scenario"]),
+                    markdown_value(record["surface"]),
+                    markdown_value(action),
+                    markdown_value(expected_actual),
+                    markdown_value(record["grant_state"]),
+                    transition(record, "admin_active_before", "admin_active_after"),
+                    transition(record, "accessibility_enabled_before", "accessibility_enabled_after"),
+                    transition(record, "service_running_before", "service_running_after"),
+                    markdown_value(record["app_present_after"]),
+                    markdown_value(record.get("recovery_within_seconds")),
+                    markdown_value(record["result"]),
+                )
+            )
+            + " |"
+        )
+    if not records:
+        lines.append("| — | — | — | — | — | — | No promoted Android records | — | — | — | — | — | — | — | — | — | pending |")
+    return lines
+
+
+def render_android_retest_queue(device_register: dict[str, Any]) -> list[str]:
+    devices = [
+        device
+        for device in device_register.get("devices", [])
+        if isinstance(device, dict) and device.get("evidence_status") != "valid_evidence"
+    ]
+    lines = [
+        "## Android device retest queue (not evidence)",
+        "",
+        "These device records are planning metadata only. They do not contribute",
+        "to Android samples, groups, OEM coverage, scenario coverage, or pass rates.",
+        "A blank result means that no prior informal outcome has been promoted.",
+        "",
+        "| Device | OEM | Source | Service | Android API | Build | Status | Result | Retest required |",
+        "|---|---|---|---|---:|---|---|---|---|",
+    ]
+    for device in sorted(devices, key=lambda item: str(item.get("device_alias", ""))):
+        lines.append(
+            "| "
+            + " | ".join(
+                (
+                    markdown_value(device.get("display_name")),
+                    markdown_value(device.get("oem_family")),
+                    markdown_value(device.get("source")),
+                    markdown_value(device.get("service")),
+                    markdown_value(device.get("android_api")),
+                    markdown_value(device.get("build_mode")),
+                    markdown_value(device.get("evidence_status")),
+                    "—",
+                    markdown_value(device.get("retest_required")),
+                )
+            )
+            + " |"
+        )
+    if not devices:
+        lines.append("| — | — | — | — | — | — | No devices queued | — | — |")
+    return lines
+
+
+def render_flutter_report(
+    android: dict[str, Any],
+    latency: dict[str, Any],
+    checks: list[dict[str, Any]],
+    android_records: list[dict[str, Any]],
+    device_register: dict[str, Any],
+) -> str:
     sections = [
         "## Android anti-uninstall",
         "",
@@ -269,6 +412,17 @@ def render_flutter_report(android: dict[str, Any], latency: dict[str, Any], chec
         f"| {latency.get('status', 'pending')} | {latency.get('group_count', 0)} | {latency.get('passed_group_count', 0)} |",
         "",
     ]
+    sections.extend(render_android_evidence_details(android_records, device_register))
+    sections.extend(["", ""])
+    sections.extend(render_android_retest_queue(device_register))
+    sections.extend([
+        "",
+        "## Android testing context",
+        "",
+        "Service and cross-OEM interpretation are maintained in",
+        "[`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).",
+        "",
+    ])
     sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "android_instrumented_runtime"}, "flutter_component_checks"))
     return render_report("Gamblock-AI Flutter / Android Report", "This report covers Flutter client checks and Android Research runtime evidence.", sections)
 
@@ -306,8 +460,12 @@ def main() -> int:
     args = parser.parse_args()
 
     workspace_root = args.workspace_root.resolve()
+    android_records, android_errors, android_ledger_exists = read_android_evidence()
+    if android_errors:
+        android_records = []
     android = read_android_summary()
     latency = read_latency_summary()
+    device_register = read_device_register()
     if args.run_model_replay:
         model, projection = run_model_replay(workspace_root)
     else:
@@ -317,7 +475,7 @@ def main() -> int:
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
     reports = {
-        "flutter": render_flutter_report(android, latency, checks),
+        "flutter": render_flutter_report(android, latency, checks, android_records, device_register),
         "golang": render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit"),
         "next": render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit"),
         "browser-extention": render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit"),
@@ -329,7 +487,21 @@ def main() -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(content, encoding="utf-8")
         outputs[technology] = str(output)
-    print(json.dumps({"outputs": outputs, "android_samples": android.get("sample_count", 0)}, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "outputs": outputs,
+                "android_ledger_exists": android_ledger_exists,
+                "android_samples": android.get("sample_count", 0),
+                "android_retest_devices": sum(
+                    device.get("evidence_status") != "valid_evidence"
+                    for device in device_register.get("devices", [])
+                    if isinstance(device, dict)
+                ),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
