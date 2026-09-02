@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 
-TESTING_ROOT = Path(__file__).resolve().parents[1]
+TESTING_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WORKSPACE_ROOT = TESTING_ROOT.parent
 
 
@@ -84,7 +84,7 @@ def read_android_summary() -> dict[str, Any]:
     ledger = TESTING_ROOT / "evidence/ledger/android-tamper.jsonl"
     if not ledger.exists():
         return pending("android_anti_uninstall", "No promoted Android tamper ledger exists.")
-    validator = load_module("android_tamper_validator", TESTING_ROOT / "scripts/validate_android_tamper_report.py")
+    validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
     records, errors = validator.load_records([ledger])
     if errors:
         return {"name": "android_anti_uninstall", "status": "failed", "error_count": len(errors)}
@@ -111,7 +111,7 @@ def read_latency_summary() -> dict[str, Any]:
     ledger = TESTING_ROOT / "evidence/ledger/phase4-latency.jsonl"
     if not ledger.exists():
         return pending("phase4_latency", "No promoted Phase 4 latency ledger exists.")
-    validator = load_module("phase4_latency_validator", TESTING_ROOT / "scripts/phase4_latency_report.py")
+    validator = load_module("phase4_latency_validator", TESTING_ROOT / "flutter/scripts/phase4_latency_report.py")
     records, errors = validator.load_records([ledger])
     if errors:
         return {"name": "phase4_latency", "status": "failed", "error_count": len(errors)}
@@ -142,7 +142,7 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             "runtime_projection",
             [
                 sys.executable,
-                str(TESTING_ROOT / "scripts/runtime_projection.py"),
+                str(TESTING_ROOT / "orchestration/scripts/runtime_projection.py"),
                 "--workspace-root",
                 str(workspace_root),
                 "--output",
@@ -171,7 +171,8 @@ def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[st
     results: list[dict[str, Any]] = []
     commands = [
         ("model_tooling_unit", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], workspace_root / "gamblock-ai-model"),
-        ("testing_tooling_unit", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], TESTING_ROOT),
+        ("testing_flutter_unit", [sys.executable, "-m", "unittest", "discover", "-s", "flutter/tests", "-p", "test_*.py"], TESTING_ROOT),
+        ("testing_orchestration_unit", [sys.executable, "-m", "unittest", "discover", "-s", "orchestration/tests", "-p", "test_*.py"], TESTING_ROOT),
         ("extension_unit", ["npm", "test"], workspace_root / "browser_extension"),
         ("website_unit", ["npm", "test", "--", "hooks/use-approval.test.tsx", "hooks/use-accountability.test.tsx", "lib/recovery/runtime.test.ts"], workspace_root / "gamblock-ai-website"),
         ("backend_unit", ["go", "test", "./internal/service", "-run", "Test(ProtectionGrantSigner_SignsDeviceBoundES256Grant|Accountability_CreateApprovalRequestAndResolve|Admin_EmergencyKeyGenerateAndValidate|ReflectionService)"], workspace_root / "gamblock-ai-backend"),

@@ -56,7 +56,7 @@ Firebase credential, project secret, or MCP configuration is committed here.
 From this repository, with the client checkout available as a sibling:
 
 ```sh
-./scripts/run-android-tamper-matrix.sh preflight \
+./flutter/scripts/run-android-tamper-matrix.sh preflight \
   --device SERIAL \
   --package com.gamblock.gamblock_ai_apps.research
 ```
@@ -65,7 +65,7 @@ The matrix script writes to a local staging path by default. Example manual
 flow:
 
 ```sh
-./scripts/run-android-tamper-matrix.sh capture-before \
+./flutter/scripts/run-android-tamper-matrix.sh capture-before \
   --device SERIAL \
   --state private/pixel-settings.state.json \
   --run-id tamper_pixel_2026_09 \
@@ -77,7 +77,7 @@ flow:
 
 # Perform exactly one Settings/Launcher/Package Installer action manually.
 
-./scripts/run-android-tamper-matrix.sh record-after \
+./flutter/scripts/run-android-tamper-matrix.sh record-after \
   --device SERIAL \
   --state private/pixel-settings.state.json \
   --output private/android-tamper.jsonl \
@@ -99,8 +99,8 @@ participant device.
 Validate and promote only aggregate records:
 
 ```sh
-python3 scripts/validate_android_tamper_report.py private/android-tamper.jsonl
-python3 scripts/promote_evidence.py android-tamper \
+python3 flutter/scripts/validate_android_tamper_report.py private/android-tamper.jsonl
+python3 flutter/scripts/promote_evidence.py android-tamper \
   --input private/android-tamper.jsonl \
   --output evidence/ledger/android-tamper.jsonl
 ```

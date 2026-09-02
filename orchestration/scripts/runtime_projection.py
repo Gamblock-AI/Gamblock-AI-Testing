@@ -23,7 +23,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-TESTING_ROOT = Path(__file__).resolve().parents[1]
+TESTING_ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE_ROOT = TESTING_ROOT.parent
 MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
 APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"

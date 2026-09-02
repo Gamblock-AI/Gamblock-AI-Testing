@@ -16,17 +16,22 @@ results.
 | `config/device-matrix.json` | Required OEM/API/scenario coverage |
 | `evidence/ledger/` | Public aggregate-only records |
 | `reports/testing-summary.md` | Single canonical human summary |
-| `scripts/` | Validators, runners, and evidence promotion |
-| `tests/` | Tests for the evaluation tooling |
+| `flutter/` | Flutter/Android anti-uninstall and latency tooling/tests |
+| `golang/` | Go backend test entrypoint and scope |
+| `next/` | Next.js website test entrypoint and scope |
+| `browser/` | Browser extension test entrypoint and scope |
+| `model/` | Model test entrypoint and scope |
+| `orchestration/` | Cross-system runner, public-evidence validation, and tests |
+| `scripts/verify-ai-context.sh` | Repository-level context validator |
 | `docs/ai/` | AI context and Android/Firebase runbook |
 
 ## Run from the umbrella
 
 ```sh
-python3 gamblock-ai-testing/scripts/run_evaluation.py \
+python3 gamblock-ai-testing/orchestration/scripts/run_evaluation.py \
   --workspace-root . \
   --output gamblock-ai-testing/reports/testing-summary.md
-python3 gamblock-ai-testing/scripts/verify_public_evidence.py
+python3 gamblock-ai-testing/orchestration/scripts/verify_public_evidence.py
 ```
 
 The evaluation runner records missing physical-device and Windows evidence as

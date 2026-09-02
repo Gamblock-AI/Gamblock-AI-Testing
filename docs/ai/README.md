@@ -23,6 +23,10 @@ orchestration and public evidence. It does not own product runtime code.
 4. `docs/ai/manifest.yaml` — context version and validation contract.
 5. `config/device-matrix.json` — coverage requirements.
 
+The test implementation is separated by system: `flutter/`, `golang/`,
+`next/`, and `browser/` describe or contain system-specific checks;
+`orchestration/` is the only place that combines their aggregate statuses.
+
 ## Evidence ownership
 
 Component documentation may state implementation status and link to the
@@ -34,7 +38,7 @@ ledger and summary.
 
 ```sh
 ./scripts/verify-ai-context.sh
-python3 scripts/verify_public_evidence.py
+python3 orchestration/scripts/verify_public_evidence.py
 ```
 
 Do not run Firebase reservations, builds, or device lifecycle commands as part

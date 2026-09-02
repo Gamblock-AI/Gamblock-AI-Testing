@@ -27,7 +27,7 @@ skills:
 verification:
   script: scripts/verify-ai-context.sh
   authoring: scripts/verify-ai-context.sh --allow-untracked
-  default_lint: scripts/verify_public_evidence.py
+  default_lint: orchestration/scripts/verify_public_evidence.py
 
 required_context:
   - .gitattributes
@@ -43,5 +43,21 @@ required_context:
   - docs/ai/android-anti-uninstall-testing.md
   - docs/ai/manifest.yaml
   - config/device-matrix.json
+  - flutter/README.md
+  - flutter/scripts/phase4_latency_report.py
+  - flutter/scripts/promote_evidence.py
+  - flutter/scripts/run-android-tamper-matrix.sh
+  - flutter/scripts/validate_android_tamper_report.py
+  - flutter/tests/test_android_tamper_report.py
+  - flutter/tests/test_phase4_latency_report.py
+  - golang/README.md
+  - next/README.md
+  - browser/README.md
+  - model/README.md
+  - orchestration/README.md
+  - orchestration/scripts/run_evaluation.py
+  - orchestration/scripts/runtime_projection.py
+  - orchestration/scripts/verify_public_evidence.py
+  - orchestration/tests/test_public_evidence.py
+  - orchestration/tests/test_runtime_projection.py
   - scripts/verify-ai-context.sh
-  - scripts/verify_public_evidence.py

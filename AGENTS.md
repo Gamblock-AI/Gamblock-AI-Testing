@@ -14,6 +14,19 @@ workflow, privacy-safe evidence ledger, and one canonical testing summary.
 - `reports/testing-summary.md` is the only human-readable testing summary.
 - `docs/ai/` explains the workflow and current capability boundaries.
 
+## Directory ownership
+
+- `flutter/` owns Flutter/Android anti-uninstall, Android tamper, and Phase 4
+  latency harnesses plus their tests.
+- `golang/`, `next/`, and `browser/` own the test entrypoint documentation for
+  the Go backend, Next.js website, and browser extension respectively. Their
+  source and production tests remain in the component repositories.
+- `model/` documents model-test scope without mirroring model source code.
+- `orchestration/` owns the cross-system runner, public-evidence validator,
+  runtime projection, and orchestration tests.
+- `scripts/verify-ai-context.sh` is repository-level context validation and is
+  intentionally kept at the root-level scripts path.
+
 Do not create a second summary in a component repository, the umbrella, or a
 generated PDF/JSON artifact. A validator may emit temporary JSON to stdout or
 an ignored temporary directory, but the committed summary remains the single
@@ -50,7 +63,7 @@ Run the context validator and public-evidence checks by default:
 
 ```sh
 ./scripts/verify-ai-context.sh
-python3 scripts/verify_public_evidence.py
+python3 orchestration/scripts/verify_public_evidence.py
 ```
 
 Tests, builds, Firebase reservations, and device lifecycle actions require an

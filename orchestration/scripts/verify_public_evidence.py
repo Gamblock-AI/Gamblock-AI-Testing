@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 FORBIDDEN_KEYS = {
     "url",
     "urls",
@@ -73,12 +73,12 @@ def forbidden_nested_values(value: Any, path: str = "") -> list[str]:
 
 def validate_ledger(path: Path, errors: list[str]) -> None:
     if path.name == "android-tamper.jsonl":
-        validator = load_module("android_tamper_validator", ROOT / "scripts/validate_android_tamper_report.py")
+        validator = load_module("android_tamper_validator", ROOT / "flutter/scripts/validate_android_tamper_report.py")
         _, validation_errors = validator.load_records([path])
         errors.extend(validation_errors)
         return
     if path.name == "phase4-latency.jsonl":
-        validator = load_module("phase4_latency_validator", ROOT / "scripts/phase4_latency_report.py")
+        validator = load_module("phase4_latency_validator", ROOT / "flutter/scripts/phase4_latency_report.py")
         _, validation_errors = validator.load_records([path])
         errors.extend(validation_errors)
         return
