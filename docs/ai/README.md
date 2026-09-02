@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-02.3`
+Context version: `2026-09-02.4`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -13,21 +13,31 @@ orchestration and public evidence. It does not own product runtime code.
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and the configured p95/sample gate. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks. |
-| Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. |
+| Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
 ## Required context
 
 1. `AGENTS.md` — repository rules and privacy boundary.
 2. `README.md` — onboarding and commands.
 3. `docs/ai/android-anti-uninstall-testing.md` — device matrix and runbook.
-4. `docs/ai/manifest.yaml` — context version and validation contract.
-5. `flutter/config/device-matrix.json` — Android coverage requirements.
-6. `docs/config/targets.json` — shared detection and latency targets.
+4. `docs/ai/testing-run-receipt.md` — mandatory test handoff fields.
+5. `docs/ai/manifest.yaml` — context version and validation contract.
+6. `flutter/config/device-matrix.json` — Android coverage requirements.
+7. `docs/config/targets.json` — shared detection and latency targets.
 
 The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, and `browser-extention/` describe or contain system-specific checks;
 `docs/tools/` is the only place that combines their aggregate statuses. It
 writes each technology report directly and does not write a global summary.
+
+## Required test handoff
+
+An explicit test/evaluation request is complete only after the matching
+technology report is regenerated, or the report is left `pending`/`blocked`
+with the exact reason documented in the handoff. See
+[`testing-run-receipt.md`](testing-run-receipt.md) for the mandatory receipt
+fields. The receipt is delivered by the agent and is not a second committed
+summary.
 
 ## Evidence ownership
 

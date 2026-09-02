@@ -1,11 +1,13 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-02.3`
+Context version: `2026-09-02.4`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
 component repositories; this repository owns the reproducible evaluation
-workflow, privacy-safe evidence ledger, and one canonical testing summary.
+workflow, privacy-safe evidence ledger, and one canonical report per
+technology. The agent's final handoff also requires a test receipt; the
+receipt is not a second report and is not committed by default.
 
 ## Source of truth
 
@@ -57,6 +59,28 @@ directory containing the required sibling checkouts explicitly.
 Keep component unit tests, lint rules, and production fixtures in their owning
 repositories. This repository may invoke them and record only aggregate status,
 duration, and output hashes.
+
+## Mandatory test handoff
+
+For every explicit test, evaluation, or re-evaluation request:
+
+1. Run the technology-specific command or runtime procedure described by the
+   relevant README/runbook.
+2. Run `docs/tools/run_evaluation.py` with the required flag so the matching
+   `<technology>/report.md` is regenerated. Model replay uses
+   `--run-model-replay`; component checks use `--run-code-tests`.
+3. For runtime evidence, validate and promote only the allowlisted ledger
+   records. Never copy raw output into the public repository.
+4. Inspect `git status` and `git diff` in both the component and testing
+   repositories. Preserve unrelated changes.
+5. Run the context and public-evidence validators before publication.
+6. Provide the required receipt described in
+   [`docs/ai/testing-run-receipt.md`](docs/ai/testing-run-receipt.md).
+
+If synchronization cannot happen because a checkout, device, dependency, or
+environment is unavailable, the report must remain `pending` or `blocked` and
+the receipt must name the exact blocker. A direct source-repository test with
+no report synchronization is not a completed evidence run.
 
 ## Default verification
 

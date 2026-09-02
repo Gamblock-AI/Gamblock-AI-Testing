@@ -35,6 +35,14 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
 
+For every explicit test or evaluation, the agent must regenerate the matching
+technology report, inspect the resulting diff, run the validators, and provide
+a test receipt. The receipt must list public files added/modified and their
+aggregate-safe contents, private/local artifacts and whether they were
+deleted, plus validation, commit, and push status. It is a handoff record, not
+an additional report. See
+[`docs/ai/testing-run-receipt.md`](docs/ai/testing-run-receipt.md).
+
 ## Android anti-uninstall
 
 Use the Research flavor only on a disposable emulator, cloud device, or loaner
