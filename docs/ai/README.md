@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-02.1`
+Context version: `2026-09-02.2`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
