@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scope": "android_research_anti_uninstall",
+  "required_oem_families": [
+    "aosp",
+    "samsung",
+    "xiaomi_redmi",
+    "oppo_realme",
+    "vivo"
+  ],
+  "scenarios": [
+    "setup",
+    "app_info_passive",
+    "launcher_uninstall",
+    "settings_uninstall",
+    "package_installer_uninstall",
+    "disable_accessibility",
+    "force_stop",
+    "clear_data",
+    "process_kill",
+    "reboot",
+    "valid_grant_removal",
+    "invalid_grant_removal",
+    "other_app_uninstall"
+  ],
+  "coverage_policy": {
+    "minimum_completed_samples_per_device_scenario": 1,
+    "required_result": "passed",
+    "unexecuted_is_pending": true,
+    "repeated_runs_are_recommended_for_oem_variance": true
+  }
+}

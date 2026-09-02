@@ -1,0 +1,47 @@
+schema_version: 1
+context_version: "2026-09-02.1"
+component: testing
+scope: repository
+source_of_truth: AGENTS.md
+
+shared_contracts:
+  proposal_authority: 1
+  privacy_boundary: 1
+  testing_evidence: 1
+
+canonical:
+  instructions: AGENTS.md
+  onboarding: README.md
+  ai_context: docs/ai/README.md
+
+providers:
+  claude: CLAUDE.md
+  codex: AGENTS.md
+  cursor: .cursor/rules/gamblock-ai.mdc
+  gemini: GEMINI.md
+  github_copilot: .github/copilot-instructions.md
+
+skills:
+  verify_change: .agents/skills/verify-gamblock-change/SKILL.md
+
+verification:
+  script: scripts/verify-ai-context.sh
+  authoring: scripts/verify-ai-context.sh --allow-untracked
+  default_lint: scripts/verify_public_evidence.py
+
+required_context:
+  - .gitattributes
+  - .agents/skills/verify-gamblock-change/SKILL.md
+  - .agents/skills/verify-gamblock-change/agents/openai.yaml
+  - AGENTS.md
+  - README.md
+  - CLAUDE.md
+  - GEMINI.md
+  - .github/copilot-instructions.md
+  - .cursor/rules/gamblock-ai.mdc
+  - docs/ai/README.md
+  - docs/ai/android-anti-uninstall-testing.md
+  - docs/ai/manifest.yaml
+  - config/device-matrix.json
+  - scripts/verify-ai-context.sh
+  - scripts/verify_public_evidence.py

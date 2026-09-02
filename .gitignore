@@ -1,0 +1,29 @@
+# Local evidence staging; only promoted allowlisted records are public.
+/private/
+/tmp/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.webm
+*.log
+*.trace
+*.pcap
+
+# Generated/intermediate evaluation output.
+__pycache__/
+*.pyc
+/reports/.generated/
+/reports/*.json
+/reports/*.pdf
+
+# Credentials and local configuration.
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore

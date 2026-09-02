@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "detection": {
+    "accuracy_min": 0.95,
+    "precision_min": 0.95,
+    "recall_min": 0.95,
+    "f1_score_min": 0.95,
+    "false_positive_rate_max": 0.02
+  },
+  "latency": {
+    "input_to_visible_ms_p95_exclusive": 200.0,
+    "minimum_successful_samples_per_group": 30,
+    "required_browser_families": ["chrome", "edge", "opera"],
+    "required_build_modes": ["debug", "profile", "release"]
+  },
+  "pattern_interrupt": {
+    "duration_seconds_min": 5,
+    "duration_seconds_max": 10,
+    "implemented_duration_seconds": 7
+  }
+}
