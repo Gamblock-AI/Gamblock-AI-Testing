@@ -21,6 +21,8 @@ repositories link here instead of copying test results.
 | `next/` | Next.js website test entrypoint and scope |
 | `browser-extention/` | Browser extension test entrypoint and scope |
 | `model/` | Model test entrypoint and scope |
+| `model/evidence/aggregate/` | Model aggregate JSON evidence |
+| `model/evidence/visuals/` | Allowlisted aggregate-generated model charts |
 | `<technology>/report.md` | One canonical report per technology |
 | `flutter/config/` and `flutter/evidence/` | Android matrix and public records |
 | `docs/ai/` | AI context, Android/Firebase service context, and runbooks |
@@ -34,6 +36,24 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
+
+For model evidence, use the explicit replay and unit-test flags:
+
+```sh
+python3 gamblock-ai-testing/docs/tools/run_evaluation.py \
+  --workspace-root . --run-model-replay --run-model-tests
+```
+
+This regenerates the model report with the historical snapshot, runtime
+projection, and separate domain-grouped candidate evidence. The grouped
+candidate report includes aggregate robustness, ablation, calibration,
+threshold, leakage, repeated-validation, speed, and visual-artifact results.
+All permanent model outputs are stored below `model/evidence/`; raw prediction
+tables used as replay input remain only in the ignored `model/private/` staging
+area. The runner uses these paths for every future model replay as well.
+The grouped candidate is not an automatic replacement for the active client
+artifact; time-shift and device-runtime are explicit exclusions of this model
+progress run.
 
 For every explicit test or evaluation, the agent must regenerate the matching
 technology report, inspect the resulting diff, run the validators, and provide

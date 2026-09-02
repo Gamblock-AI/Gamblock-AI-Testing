@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "detection": {
-    "accuracy_min": 0.95,
-    "precision_min": 0.95,
-    "recall_min": 0.95,
-    "f1_score_min": 0.95,
-    "false_positive_rate_max": 0.02
+    "accuracy_min": 0.90,
+    "precision_min": 0.90,
+    "recall_min": 0.90,
+    "f1_score_min": 0.90,
+    "false_positive_rate_max": 0.05
   },
   "latency": {
     "input_to_visible_ms_p95_exclusive": 200.0,

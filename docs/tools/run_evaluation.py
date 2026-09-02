@@ -26,6 +26,11 @@ REPORT_PATHS = {
     "model": Path("model/report.md"),
 }
 DEVICE_REGISTER_PATH = TESTING_ROOT / "flutter/config/device-register.json"
+MODEL_EVIDENCE_ROOT = TESTING_ROOT / "model/evidence"
+MODEL_AGGREGATE_ROOT = MODEL_EVIDENCE_ROOT / "aggregate"
+MODEL_VISUAL_ROOT = MODEL_EVIDENCE_ROOT / "visuals"
+MODEL_PRIVATE_ROOT = TESTING_ROOT / "model/private"
+MODEL_REPLAY_INPUT_ROOT = MODEL_PRIVATE_ROOT / "replay_input"
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -56,7 +61,9 @@ def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, 
             check=False,
         )
     except subprocess.TimeoutExpired as error:
-        output = ((error.stdout or "") + "\n" + (error.stderr or "")).strip()
+        stdout = error.stdout.decode("utf-8", "replace") if isinstance(error.stdout, bytes) else (error.stdout or "")
+        stderr = error.stderr.decode("utf-8", "replace") if isinstance(error.stderr, bytes) else (error.stderr or "")
+        output = (stdout + "\n" + stderr).strip()
         return {
             "name": name,
             "status": "failed",
@@ -158,17 +165,29 @@ def read_latency_summary() -> dict[str, Any]:
     }
 
 
-def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     model_root = workspace_root / "gamblock-ai-model"
     if not model_root.is_dir():
-        return pending("model_evidence", "Model repository is not available."), pending("runtime_projection", "Model repository is not available.")
+        reason = "Model repository is not available."
+        return pending("model_evidence", reason), pending("runtime_projection", reason), pending("domain_grouped_model", reason)
+    MODEL_AGGREGATE_ROOT.mkdir(parents=True, exist_ok=True)
+    MODEL_VISUAL_ROOT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="gamblock-testing-") as temporary:
         directory = Path(temporary)
-        model_output = directory / "model-evidence.json"
-        projection_output = directory / "runtime-projection.json"
+        model_output = MODEL_AGGREGATE_ROOT / "historical_model_evidence.json"
+        projection_output = MODEL_AGGREGATE_ROOT / "deployment_projection_evidence.json"
+        grouped_output = MODEL_AGGREGATE_ROOT / "domain_grouped_evidence.json"
+        grouped_onnx = directory / "domain-grouped-candidate.onnx"
         model_result = run_command(
             "model_evidence",
-            [sys.executable, "scripts/evaluate_model_evidence.py", "--output", str(model_output)],
+            [
+                sys.executable,
+                "scripts/evaluate_model_evidence.py",
+                "--output",
+                str(model_output),
+                "--prediction-input",
+                str(MODEL_REPLAY_INPUT_ROOT / "predictions.csv"),
+            ],
             model_root,
             workspace_root,
         )
@@ -186,19 +205,79 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             workspace_root,
             timeout=360,
         )
-        if model_output.exists():
+        grouped_result = run_command(
+            "domain_grouped_model",
+            [
+                sys.executable,
+                "scripts/evaluate_domain_grouped_model.py",
+                "--output",
+                str(grouped_output),
+                "--candidate-onnx",
+                str(grouped_onnx),
+                "--plot-dir",
+                str(MODEL_VISUAL_ROOT),
+                "--public-safe",
+            ],
+            model_root,
+            workspace_root,
+            timeout=1800,
+        )
+        if model_result.get("status") == "passed" and model_output.exists():
             model = json.loads(model_output.read_text(encoding="utf-8"))
+            metrics = model.get("evaluation", {}).get("all_test_rows", {})
             model_result["aggregate"] = {
                 "evidence_maturity": model.get("evidence_maturity"),
                 "dataset_rows": model.get("dataset", {}).get("test", {}).get("rows"),
+                "numeric_gate_passed": metrics.get("numeric_gate_passed"),
+                "audit_passed": model.get("audit", {}).get("passed"),
             }
-        if projection_output.exists():
+        if projection_result.get("status") == "passed" and projection_output.exists():
             projection = json.loads(projection_output.read_text(encoding="utf-8"))
             metrics = projection.get("evaluation", {}).get("deployed_hybrid", {})
             projection_result["aggregate"] = {
                 key: metrics.get(key) for key in ("accuracy", "precision", "recall", "f1_score", "false_positive_rate")
             }
-        return model_result, projection_result
+        if grouped_result.get("status") == "passed" and grouped_output.exists():
+            grouped = json.loads(grouped_output.read_text(encoding="utf-8"))
+            metrics = grouped.get("evaluation", {}).get("final_test", {})
+            grouped_result["aggregate"] = {
+                "evidence_maturity": grouped.get("evidence_maturity"),
+                "samples": metrics.get("samples"),
+                "accuracy": metrics.get("accuracy"),
+                "precision": metrics.get("precision"),
+                "recall": metrics.get("recall"),
+                "f1_score": metrics.get("f1_score"),
+                "false_positive_rate": metrics.get("false_positive_rate"),
+                "numeric_gate_passed": metrics.get("numeric_gate_passed"),
+                "split_audit_passed": grouped.get("split", {}).get("audit_passed"),
+                "onnx_parity": grouped.get("parity", {}).get("status"),
+                "ablations": grouped.get("evaluation", {}).get("ablations", {}),
+                "slices": grouped.get("evaluation", {}).get("slices", {}),
+                "camouflage": grouped.get("evaluation", {}).get("camouflage", {}),
+                "threshold_sensitivity": grouped.get("evaluation", {}).get("threshold_sensitivity", {}),
+                "calibration": grouped.get("evaluation", {}).get("calibration", {}),
+                "offline_speed": grouped.get("evaluation", {}).get("offline_speed", {}),
+                "repeated_grouped_cv": grouped.get("evaluation", {}).get("repeated_grouped_cv", {}),
+                "leakage_audit": grouped.get("leakage_audit", {}),
+                "split_integrity": grouped.get("split", {}).get("integrity_audit", {}),
+                "visuals": grouped.get("artifacts", {}).get("visuals", {}),
+                "scope_exclusions": grouped.get("scope_exclusions", {}),
+                "limitations": grouped.get("limitations", {}),
+            }
+        return model_result, projection_result, grouped_result
+
+
+def run_model_tests(workspace_root: Path) -> dict[str, Any]:
+    model_root = workspace_root / "gamblock-ai-model"
+    if not model_root.is_dir():
+        return pending("model_tooling_unit", "Model repository is not available.")
+    return run_command(
+        "model_tooling_unit",
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
+        model_root,
+        workspace_root,
+        timeout=360,
+    )
 
 
 def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[str, Any]]:
@@ -431,13 +510,31 @@ def render_component_report(title: str, description: str, checks: list[dict[str,
     return render_report(title, description, render_check_section(checks, names, fallback_name))
 
 
-def render_model_report(model: dict[str, Any], projection: dict[str, Any], checks: list[dict[str, Any]]) -> str:
+def render_model_report(
+    model: dict[str, Any],
+    projection: dict[str, Any],
+    grouped: dict[str, Any],
+    checks: list[dict[str, Any]],
+) -> str:
+    grouped_aggregate = grouped.get("aggregate", {})
+    ablations = grouped_aggregate.get("ablations", {})
+    slices = grouped_aggregate.get("slices", {})
+    camouflage = grouped_aggregate.get("camouflage", {})
+    threshold_sensitivity = grouped_aggregate.get("threshold_sensitivity", {})
+    calibration = grouped_aggregate.get("calibration", {})
+    offline_speed = grouped_aggregate.get("offline_speed", {})
+    repeated_cv = grouped_aggregate.get("repeated_grouped_cv", {})
+    leakage_audit = grouped_aggregate.get("leakage_audit", {})
+    split_integrity = grouped_aggregate.get("split_integrity", {})
+    visuals = grouped_aggregate.get("visuals", {})
+    scope_exclusions = grouped_aggregate.get("scope_exclusions", {})
+    limitations = grouped_aggregate.get("limitations", {})
     sections = [
         "## Model replay",
         "",
-        "| Status | Evidence maturity | Test rows |",
-        "|---|---|---:|",
-        f"| {model.get('status', 'pending')} | {model.get('aggregate', {}).get('evidence_maturity', 'not generated')} | {model.get('aggregate', {}).get('dataset_rows', 'not generated')} |",
+        "| Status | Evidence maturity | Test rows | Numeric gate | Audit |",
+        "|---|---|---:|---|---|",
+        f"| {model.get('status', 'pending')} | {model.get('aggregate', {}).get('evidence_maturity', 'not generated')} | {model.get('aggregate', {}).get('dataset_rows', 'not generated')} | {model.get('aggregate', {}).get('numeric_gate_passed', 'not generated')} | {model.get('aggregate', {}).get('audit_passed', 'not generated')} |",
         "",
         "## Runtime projection",
         "",
@@ -445,9 +542,201 @@ def render_model_report(model: dict[str, Any], projection: dict[str, Any], check
         "|---|---:|---:|---:|---:|---:|",
         f"| {projection.get('status', 'pending')} | {projection.get('aggregate', {}).get('accuracy', 'not generated')} | {projection.get('aggregate', {}).get('precision', 'not generated')} | {projection.get('aggregate', {}).get('recall', 'not generated')} | {projection.get('aggregate', {}).get('f1_score', 'not generated')} | {projection.get('aggregate', {}).get('false_positive_rate', 'not generated')} |",
         "",
+        "## Text-and-domain grouped candidate",
+        "",
+        "| Status | Evidence maturity | Test rows | Accuracy | Precision | Recall | F1 | FPR | Numeric gate | Split audit | ONNX parity |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|",
+        f"| {grouped.get('status', 'pending')} | {grouped_aggregate.get('evidence_maturity', 'not generated')} | {grouped_aggregate.get('samples', 'not generated')} | {grouped_aggregate.get('accuracy', 'not generated')} | {grouped_aggregate.get('precision', 'not generated')} | {grouped_aggregate.get('recall', 'not generated')} | {grouped_aggregate.get('f1_score', 'not generated')} | {grouped_aggregate.get('false_positive_rate', 'not generated')} | {grouped_aggregate.get('numeric_gate_passed', 'not generated')} | {grouped_aggregate.get('split_audit_passed', 'not generated')} | {grouped_aggregate.get('onnx_parity', 'not generated')} |",
+        "",
+        "The text-and-domain grouped candidate is a separate research artifact. It does",
+        "not replace the active client model automatically.",
+        "",
+        "## Text-and-domain grouped ablations",
+        "",
+        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Gate |",
+        "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
+    if ablations:
+        for name, metrics in sorted(ablations.items()):
+            sections.append(
+                f"| {name} | {metrics.get('samples', '—')} | {metrics.get('accuracy', '—')} | "
+                f"{metrics.get('precision', '—')} | {metrics.get('recall', '—')} | "
+                f"{metrics.get('f1_score', '—')} | {metrics.get('false_positive_rate', '—')} | "
+                f"{metrics.get('numeric_gate_passed', '—')} |"
+            )
+    else:
+        sections.append("| — | — | — | — | — | — | — | pending |")
+    sections.extend([
+        "",
+        "## Camouflage robustness",
+        "",
+        "Variants are generated in memory from the frozen grouped final-test rows;",
+        "positive-class variants also support train-only augmentation, and no",
+        "camouflage dataset is persisted.",
+        "",
+        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Gate |",
+        "|---|---:|---:|---:|---:|---:|---:|---|",
+    ])
+    camouflage_variants = camouflage.get("variants", {})
+    if camouflage_variants:
+        for name, metrics in sorted(camouflage_variants.items()):
+            sections.append(
+                f"| {name} | {markdown_value(metrics.get('samples'))} | "
+                f"{markdown_value(metrics.get('accuracy'))} | {markdown_value(metrics.get('precision'))} | "
+                f"{markdown_value(metrics.get('recall'))} | {markdown_value(metrics.get('f1_score'))} | "
+                f"{markdown_value(metrics.get('false_positive_rate'))} | "
+                f"{markdown_value(metrics.get('numeric_gate_passed'))} |"
+            )
+    else:
+        sections.append("| — | — | — | — | — | — | — | pending |")
+    sections.extend([
+        "",
+        "## Threshold sensitivity",
+        "",
+        "| Threshold | Precision | Recall | F1 | FPR | Selected |",
+        "|---:|---:|---:|---:|---:|---|",
+    ])
+    threshold_results = threshold_sensitivity.get("results", [])
+    if threshold_results:
+        for result in threshold_results:
+            sections.append(
+                f"| {markdown_value(result.get('threshold'))} | {markdown_value(result.get('precision'))} | "
+                f"{markdown_value(result.get('recall'))} | {markdown_value(result.get('f1_score'))} | "
+                f"{markdown_value(result.get('false_positive_rate'))} | {markdown_value(result.get('selected'))} |"
+            )
+    else:
+        sections.append("| — | — | — | — | — | pending |")
+    sections.extend([
+        "",
+        "## Calibration",
+        "",
+        "| Status | Samples | Brier score | Expected calibration error |",
+        "|---|---:|---:|---:|",
+        f"| {markdown_value(calibration.get('status'))} | {markdown_value(calibration.get('samples'))} | "
+        f"{markdown_value(calibration.get('brier_score'))} | {markdown_value(calibration.get('expected_calibration_error'))} |",
+        "",
+        "## Repeated grouped validation",
+        "",
+        "| Status | Folds per repetition | Repetitions | Evaluations | Gate pass rate | Mean accuracy | Mean precision | Mean recall | Mean F1 | Mean FPR |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    cv_summary = repeated_cv.get("summary", {})
+    cv_mean = cv_summary.get("mean", {})
+    sections.append(
+        f"| {markdown_value(cv_summary.get('status'))} | {markdown_value(repeated_cv.get('folds'))} | "
+        f"{markdown_value(repeated_cv.get('repetitions'))} | {markdown_value(repeated_cv.get('total_evaluations'))} | "
+        f"{markdown_value(cv_summary.get('numeric_gate_pass_rate'))} | {markdown_value(cv_mean.get('accuracy'))} | "
+        f"{markdown_value(cv_mean.get('precision'))} | {markdown_value(cv_mean.get('recall'))} | "
+        f"{markdown_value(cv_mean.get('f1_score'))} | {markdown_value(cv_mean.get('false_positive_rate'))} |"
+    )
+    sections.extend([
+        "",
+        "## Duplicate and leakage audit",
+        "",
+        "| Field | Duplicate groups | Duplicate rows | Cross-split groups |",
+        "|---|---:|---:|---:|",
+    ])
+    audit_fields = [name for name, details in leakage_audit.items() if isinstance(details, dict)]
+    if audit_fields:
+        for name in sorted(audit_fields):
+            details = leakage_audit[name]
+            sections.append(
+                f"| {name} | {markdown_value(details.get('groups_with_duplicates'))} | "
+                f"{markdown_value(details.get('duplicate_rows'))} | "
+                f"{markdown_value(details.get('cross_split_duplicate_groups'))} |"
+            )
+        sections.append(f"Overall audit passed: **{markdown_value(leakage_audit.get('audit_passed'))}**.")
+    else:
+        sections.append("| — | — | — | pending |")
+    sections.extend([
+        "",
+        "## Split integrity audit",
+        "",
+        "| Status | Clean rows | Train rows | Test rows | Excluded rows | Failed checks |",
+        "|---|---:|---:|---:|---:|---|",
+    ])
+    if split_integrity:
+        counts = split_integrity.get("counts", {})
+        failed_checks = ", ".join(split_integrity.get("failed_checks", [])) or "none"
+        sections.append(
+            f"| {markdown_value(split_integrity.get('status'))} | "
+            f"{markdown_value(counts.get('clean_rows'))} | "
+            f"{markdown_value(counts.get('train_rows'))} | "
+            f"{markdown_value(counts.get('test_rows'))} | "
+            f"{markdown_value(counts.get('actual_excluded_rows'))} | "
+            f"{markdown_value(failed_checks)} |"
+        )
+    else:
+        sections.append("| pending | — | — | — | — | not generated |")
+    sections.extend([
+        "",
+        "## Offline inference speed",
+        "",
+        "| Status | Samples/run | Runs | Mean ms | P50 ms | P95 ms | Max ms | Mean ms/sample |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        f"| {markdown_value(offline_speed.get('status'))} | {markdown_value(offline_speed.get('samples_per_run'))} | "
+        f"{markdown_value(offline_speed.get('runs'))} | {markdown_value(offline_speed.get('mean_ms'))} | "
+        f"{markdown_value(offline_speed.get('p50_ms'))} | {markdown_value(offline_speed.get('p95_ms'))} | "
+        f"{markdown_value(offline_speed.get('max_ms'))} | {markdown_value(offline_speed.get('mean_ms_per_sample'))} |",
+        "",
+        "Scope: offline prediction on the evaluation host; browser, UI, and device latency are excluded.",
+        "",
+        "## Visual artifacts",
+        "",
+        "| Artifact | Status | Size (bytes) | SHA-256 recorded |",
+        "|---|---|---:|---|",
+    ])
+    visual_files = visuals.get("files", {})
+    if visual_files:
+        for name, artifact in sorted(visual_files.items()):
+            sections.append(
+                f"| {name} | {markdown_value(visuals.get('status'))} | "
+                f"{markdown_value(artifact.get('bytes'))} | {markdown_value(bool(artifact.get('sha256')))} |"
+            )
+    else:
+        sections.append("| — | pending | — | — |")
+    sections.extend([
+        "",
+        "## Scope exclusions",
+        "",
+    ])
+    if scope_exclusions:
+        sections.extend(f"- {name}: {reason}" for name, reason in sorted(scope_exclusions.items()))
+    else:
+        sections.append("- none recorded")
+    sections.extend([
+        "",
+        "## Text-and-domain grouped slices",
+        "",
+        "| Slice | Samples | Status | Accuracy | Precision | Recall | F1 | FPR |",
+        "|---|---:|---|---:|---:|---:|---:|---:|",
+    ])
+    if slices:
+        for name, details in sorted(slices.items()):
+            metrics = details.get("metrics", {})
+            sections.append(
+                f"| {name} | {details.get('samples', '—')} | {metrics.get('status', '—')} | "
+                f"{metrics.get('accuracy', '—')} | {metrics.get('precision', '—')} | "
+                f"{metrics.get('recall', '—')} | {metrics.get('f1_score', '—')} | "
+                f"{metrics.get('false_positive_rate', '—')} |"
+            )
+    else:
+        sections.append("| — | — | pending | — | — | — | — | — |")
+    sections.extend([
+        "",
+        "## Text-and-domain grouped limitations",
+        "",
+    ])
+    if limitations:
+        sections.extend(f"- {name}: {reason}" for name, reason in sorted(limitations.items()))
+    else:
+        sections.append("- pending: grouped replay was not requested")
     sections.extend(render_check_section(checks, {"model_tooling_unit"}, "model_tooling_unit"))
-    return render_report("Gamblock-AI Model Report", "This report covers offline model evidence and runtime projection only.", sections)
+    return render_report(
+        "Gamblock-AI Model Report",
+        "This report covers offline model replay, runtime projection, and text-and-domain grouped candidate evaluation only.",
+        sections,
+    )
 
 
 def main() -> int:
@@ -455,6 +744,7 @@ def main() -> int:
     parser.add_argument("--workspace-root", type=Path, default=DEFAULT_WORKSPACE_ROOT)
     parser.add_argument("--output-dir", type=Path, default=TESTING_ROOT)
     parser.add_argument("--run-model-replay", action="store_true")
+    parser.add_argument("--run-model-tests", action="store_true")
     parser.add_argument("--run-code-tests", action="store_true")
     parser.add_argument("--include-flutter", action="store_true")
     args = parser.parse_args()
@@ -467,19 +757,25 @@ def main() -> int:
     latency = read_latency_summary()
     device_register = read_device_register()
     if args.run_model_replay:
-        model, projection = run_model_replay(workspace_root)
+        model, projection, grouped = run_model_replay(workspace_root)
     else:
         model = pending("model_evidence", "Not requested; use --run-model-replay explicitly.")
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
+        grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
     checks = run_code_checks(workspace_root, args.include_flutter) if args.run_code_tests else [
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
+    model_checks = [check for check in checks if check.get("name") == "model_tooling_unit"]
+    if args.run_model_tests:
+        model_checks = [run_model_tests(workspace_root)]
+    elif not model_checks:
+        model_checks = [pending("model_tooling_unit", "Not requested; use --run-model-tests explicitly.")]
     reports = {
         "flutter": render_flutter_report(android, latency, checks, android_records, device_register),
         "golang": render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit"),
         "next": render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit"),
         "browser-extention": render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit"),
-        "model": render_model_report(model, projection, checks),
+        "model": render_model_report(model, projection, grouped, model_checks),
     }
     outputs: dict[str, str] = {}
     for technology, content in reports.items():

@@ -1,0 +1,91 @@
+{
+  "artifacts": {
+    "fixtures_sha256": "c6f089ba5d762b7f7643a5fde91aa68cf241ad6ff2d6209c8d3dee337f04ae99",
+    "model_sha256": "ff3f157f0c0af85a0fa4b02a12f23687468cd004d895e48f1da3644c18ba0b2a",
+    "model_version": "gamblock-lr-14012bec0479",
+    "rules_sha256": "4c11c7d505c5fb791e44051fafce7df1dbddca49e1d2fd6aa6c37b78c08abda3",
+    "ruleset_version": "gambling-keywords-b4f2932a7647"
+  },
+  "evaluation": {
+    "deployed_hybrid": {
+      "accuracy": 0.9881093935790726,
+      "confusion_matrix": {
+        "fn": 19,
+        "fp": 11,
+        "tn": 1737,
+        "tp": 756
+      },
+      "f1_score": 0.9805447470817121,
+      "false_positive_rate": 0.006292906178489702,
+      "precision": 0.9856584093872229,
+      "recall": 0.9754838709677419,
+      "samples": 2523
+    },
+    "exact_host_isolated_deployed_hybrid": {
+      "accuracy": 0.9881093935790726,
+      "confusion_matrix": {
+        "fn": 19,
+        "fp": 11,
+        "tn": 1737,
+        "tp": 756
+      },
+      "f1_score": 0.9805447470817121,
+      "false_positive_rate": 0.006292906178489702,
+      "precision": 0.9856584093872229,
+      "recall": 0.9754838709677419,
+      "samples": 2523
+    },
+    "excluded_exact_host_overlap_rows": 0,
+    "missing_html_rows": 0,
+    "model_only_content_gate": {
+      "accuracy": 0.9869203329369798,
+      "confusion_matrix": {
+        "fn": 17,
+        "fp": 16,
+        "tn": 1732,
+        "tp": 758
+      },
+      "f1_score": 0.9786959328599096,
+      "false_positive_rate": 0.009153318077803204,
+      "precision": 0.979328165374677,
+      "recall": 0.9780645161290322,
+      "samples": 2523
+    },
+    "rule_only": {
+      "accuracy": 0.90764962346413,
+      "confusion_matrix": {
+        "fn": 170,
+        "fp": 63,
+        "tn": 1685,
+        "tp": 605
+      },
+      "f1_score": 0.8385308385308385,
+      "false_positive_rate": 0.036041189931350116,
+      "precision": 0.905688622754491,
+      "recall": 0.7806451612903226,
+      "samples": 2523
+    },
+    "test_rows_declared": 2523,
+    "test_rows_evaluated": 2523
+  },
+  "evidence_maturity": "provisional",
+  "fixture_contract": {
+    "all_passed": true,
+    "passed": 6,
+    "samples": 6
+  },
+  "generated_at": "2026-09-02T21:03:25.812136+00:00",
+  "limitations": [
+    "The frozen split has exact hostname overlap between train and test and incomplete dataset provenance.",
+    "The projection reproduces the extension-to-Windows bounded input contract, not Android accessibility extraction.",
+    "Metrics are offline artifact evidence and do not prove browser, Windows service, blocking, or Pattern Interrupt runtime behavior."
+  ],
+  "projection": {
+    "participant_data_emitted": false,
+    "raw_url_or_dom_emitted": false,
+    "route": "browser_extension DOM snapshot -> bounded loopback payload -> Windows Hybrid-v2",
+    "scope": "offline replay of the frozen model test HTML; no device/browser timing or intervention runtime claim"
+  },
+  "report_kind": "deployed_hybrid_projection",
+  "schema_version": 1
+}

@@ -151,6 +151,10 @@ class PublicEvidenceTest(unittest.TestCase):
         errors = PUBLIC.forbidden_nested_values({"evidence": {"screenshot": "raw"}})
         self.assertTrue(any("screenshot" in error for error in errors))
 
+    def test_public_scanner_rejects_local_path(self):
+        errors = PUBLIC.forbidden_nested_values({"path": "data/processed/test.csv"})
+        self.assertTrue(any("path" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,16 @@ __pycache__/
 *.json.tmp
 *.pdf
 
+# Model aggregate charts are public-safe generated evidence. All other images
+# remain blocked by the raw-artifact rule above.
+!model/evidence/
+!model/evidence/visuals/
+!model/evidence/visuals/historical_confusion_matrix.png
+!model/evidence/visuals/domain_grouped_confusion_matrix.png
+!model/evidence/visuals/domain_grouped_ablation_metrics.png
+!model/evidence/visuals/domain_grouped_threshold_sensitivity.png
+!model/evidence/visuals/domain_grouped_calibration.png
+
 # Credentials and local configuration.
 .env
 .env.*

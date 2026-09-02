@@ -36,11 +36,24 @@ FORBIDDEN_KEYS = {
     "token",
     "password",
     "account",
+    "path",
 }
 RAW_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".log", ".trace", ".pcap"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 LABEL_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 URL_PATTERN = re.compile(r"https?://", re.IGNORECASE)
+MODEL_PUBLIC_AGGREGATES = {
+    Path("model/evidence/aggregate/historical_model_evidence.json"),
+    Path("model/evidence/aggregate/deployment_projection_evidence.json"),
+    Path("model/evidence/aggregate/domain_grouped_evidence.json"),
+}
+MODEL_PUBLIC_VISUALS = {
+    Path("model/evidence/visuals/historical_confusion_matrix.png"),
+    Path("model/evidence/visuals/domain_grouped_confusion_matrix.png"),
+    Path("model/evidence/visuals/domain_grouped_ablation_metrics.png"),
+    Path("model/evidence/visuals/domain_grouped_threshold_sensitivity.png"),
+    Path("model/evidence/visuals/domain_grouped_calibration.png"),
+}
 DEVICE_REGISTER_FIELDS = {
     "device_alias",
     "display_name",
@@ -194,8 +207,12 @@ def main() -> int:
     errors: list[str] = []
     files = public_files()
     for path in files:
-        if path.suffix.lower() in RAW_SUFFIXES and "private" not in path.parts:
+        relative = path.relative_to(ROOT)
+        allowed_model_visual = relative in MODEL_PUBLIC_VISUALS
+        if path.suffix.lower() in RAW_SUFFIXES and "private" not in path.parts and not allowed_model_visual:
             errors.append(f"raw artifact is public or staged: {path.relative_to(ROOT)}")
+        if relative.parts[:2] == ("model", "evidence") and relative not in MODEL_PUBLIC_AGGREGATES | MODEL_PUBLIC_VISUALS:
+            errors.append(f"unexpected model evidence file: {relative}")
 
     report_files = {
         str(path.relative_to(ROOT))
@@ -209,6 +226,17 @@ def main() -> int:
     legacy_reports = [path for path in public_files() if "reports" in path.relative_to(ROOT).parts]
     for path in legacy_reports:
         errors.append(f"legacy root report path is not allowed: {path.relative_to(ROOT)}")
+
+    for path in sorted(MODEL_PUBLIC_AGGREGATES):
+        if not path.exists():
+            errors.append(f"missing public model aggregate: {path}")
+            continue
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            errors.append(f"{path}: invalid public model aggregate: {error}")
+            continue
+        errors.extend(forbidden_nested_values(value, str(path)))
 
     for path in sorted(ROOT.glob("*/evidence/ledger/*.jsonl")):
         validate_ledger(path, errors)

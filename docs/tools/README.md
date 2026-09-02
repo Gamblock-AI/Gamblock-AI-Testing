@@ -16,6 +16,10 @@ python3 -m unittest discover -s docs/tools/tests -p 'test_*.py'
 
 The runner writes the single canonical human-readable result to
 `<technology>/report.md`; `docs/testing-index.md` only links to those reports.
+For model replay, it also writes the permanent aggregate JSON evidence to
+`model/evidence/aggregate/` and the allowlisted aggregate-generated charts to
+`model/evidence/visuals/`. Sensitive model inputs remain in ignored
+`model/private/` and are never copied into public evidence.
 
 Running the tool is part of the mandatory test handoff, but it does not commit
 or push changes. After it finishes, inspect `git status`/`git diff`, run the

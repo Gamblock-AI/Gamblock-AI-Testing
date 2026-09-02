@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-02.5`
+Context version: `2026-09-03.1`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -18,6 +18,11 @@ receipt is not a second report and is not committed by default.
 - Each technology's `<technology>/report.md` is its only human-readable
   canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
+- Model replay is the exception to the runtime-ledger layout: its validated,
+  aggregate-only evidence is stored under `model/evidence/aggregate/` and
+  its allowlisted aggregate charts under `model/evidence/visuals/`.
+  The canonical model report also exposes split-manifest integrity status and
+  keeps repeated grouped validation labeled as fixed-candidate stability.
 
 ## Directory ownership
 
@@ -27,6 +32,8 @@ receipt is not a second report and is not committed by default.
   the Go backend, Next.js website, and browser extension respectively. Their
   source and production tests remain in the component repositories.
 - `model/` documents model-test scope without mirroring model source code.
+  Permanent aggregate evidence and approved aggregate charts belong under
+  `model/evidence/`; ignored raw snapshots belong under `model/private/`.
 - `docs/tools/` owns the cross-system runner, public-evidence validator,
   runtime projection, context validator, and orchestration tests.
 
@@ -43,6 +50,11 @@ to stdout or an ignored temporary directory, but each committed
 - Screenshots and other raw visual evidence never leave the device. Public
   evidence may contain only a boolean availability flag and a SHA-256 digest of
   a locally reviewed artifact; never publish the image, filename, or path.
+  The model-only charts in `model/evidence/visuals/` are a narrow exception:
+  they are generated solely from aggregate metrics, contain no sample-level
+  content, and are permitted only at the exact allowlisted paths enforced by
+  `docs/tools/verify_public_evidence.py`. They are not screenshots or raw
+  visual evidence.
 - Never publish device serials, credentials, tokens, account identifiers, or
   raw ADB/logcat output.
 - Test-only Android anti-uninstall coverage uses supported Device Admin and
@@ -98,7 +110,9 @@ not run automatically on push because they may consume quota.
 ## Publication boundary
 
 The repository is public. Only validated files under technology-owned
-`evidence/ledger/` folders and the matching canonical reports may be committed
+`evidence/ledger/` folders, the matching canonical reports, and the
+allowlisted model aggregate evidence under `model/evidence/` may be committed
 as test results. Local staging files belong under ignored `<technology>/private/`
-or an external temporary directory. Never commit secrets, raw screenshots,
-APKs, device exports, or generated build outputs.
+or an external temporary directory. Model prediction tables, URLs, domains,
+DOM text, screenshots, APKs, device exports, and generated build outputs never
+belong in the public evidence paths.

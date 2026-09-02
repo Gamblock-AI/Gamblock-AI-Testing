@@ -41,6 +41,12 @@ def record(**overrides):
 
 
 class RunEvaluationReportTest(unittest.TestCase):
+    def test_model_evidence_paths_are_owned_by_testing_repository(self):
+        self.assertEqual(RUNNER.MODEL_AGGREGATE_ROOT.parent, RUNNER.MODEL_EVIDENCE_ROOT)
+        self.assertEqual(RUNNER.MODEL_VISUAL_ROOT.parent, RUNNER.MODEL_EVIDENCE_ROOT)
+        self.assertEqual(RUNNER.MODEL_PRIVATE_ROOT.parent, RUNNER.TESTING_ROOT / "model")
+        self.assertNotIn("gamblock-ai-model", str(RUNNER.MODEL_EVIDENCE_ROOT))
+
     def test_valid_evidence_and_retest_queue_are_separate(self):
         register = {
             "devices": [
@@ -72,6 +78,81 @@ class RunEvaluationReportTest(unittest.TestCase):
     def test_markdown_value_does_not_emit_empty_result_as_claim(self):
         self.assertEqual(RUNNER.markdown_value(None), "—")
         self.assertEqual(RUNNER.markdown_value("a|b"), "a\\|b")
+
+    def test_model_report_renders_grouped_aggregate_sections(self):
+        report = RUNNER.render_model_report(
+            {"status": "passed", "aggregate": {"evidence_maturity": "provisional"}},
+            {"status": "passed", "aggregate": {"accuracy": 0.9}},
+            {
+                "status": "passed",
+                "aggregate": {
+                    "evidence_maturity": "provisional",
+                    "samples": 10,
+                    "accuracy": 0.9,
+                    "precision": 0.9,
+                    "recall": 0.8,
+                    "f1_score": 0.85,
+                    "false_positive_rate": 0.1,
+                    "numeric_gate_passed": False,
+                    "split_audit_passed": False,
+                    "onnx_parity": "failed",
+                    "ablations": {"rule_only": {"samples": 10, "status": "failed"}},
+                    "slices": {"invalid_url": {"samples": 0, "metrics": {"status": "pending"}}},
+                    "limitations": {"time_shifted_evaluation": "pending"},
+                },
+            },
+            [{"name": "model_tooling_unit", "status": "passed"}],
+        )
+        self.assertIn("## Text-and-domain grouped candidate", report)
+        self.assertIn("## Text-and-domain grouped ablations", report)
+        self.assertIn("rule_only", report)
+        self.assertIn("time_shifted_evaluation", report)
+        self.assertNotIn("https://", report)
+
+    def test_model_report_renders_new_aggregate_evaluations(self):
+        report = RUNNER.render_model_report(
+            {"status": "passed"},
+            {"status": "passed"},
+            {
+                "status": "passed",
+                "aggregate": {
+                    "camouflage": {
+                        "variants": {"case_variation": {"samples": 4, "accuracy": 1.0}}
+                    },
+                    "threshold_sensitivity": {
+                        "results": [{"threshold": 0.55, "selected": True}]
+                    },
+                    "calibration": {"status": "reported", "samples": 4},
+                    "repeated_grouped_cv": {
+                        "folds": 5,
+                        "repetitions": 3,
+                        "total_evaluations": 15,
+                        "summary": {"status": "failed", "mean": {}},
+                    },
+                    "leakage_audit": {"audit_passed": False},
+                    "offline_speed": {"status": "reported", "runs": 5},
+                    "visuals": {
+                        "status": "created",
+                        "files": {"confusion_matrix": {"bytes": 10, "sha256": "hash"}},
+                    },
+                    "scope_exclusions": {"time_shifted_evaluation": "out_of_scope"},
+                },
+            },
+            [],
+        )
+        for section in (
+            "## Camouflage robustness",
+            "## Threshold sensitivity",
+            "## Calibration",
+            "## Repeated grouped validation",
+            "## Duplicate and leakage audit",
+            "## Offline inference speed",
+            "## Visual artifacts",
+            "## Scope exclusions",
+        ):
+            self.assertIn(section, report)
+        self.assertIn("case_variation", report)
+        self.assertNotIn("https://", report)
 
 
 if __name__ == "__main__":
