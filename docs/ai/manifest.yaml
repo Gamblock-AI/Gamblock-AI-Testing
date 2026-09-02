@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-02.2"
+context_version: "2026-09-02.3"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -25,9 +25,9 @@ skills:
   verify_change: .agents/skills/verify-gamblock-change/SKILL.md
 
 verification:
-  script: scripts/verify-ai-context.sh
-  authoring: scripts/verify-ai-context.sh --allow-untracked
-  default_lint: orchestration/scripts/verify_public_evidence.py
+  script: docs/tools/verify-ai-context.sh
+  authoring: docs/tools/verify-ai-context.sh --allow-untracked
+  default_lint: docs/tools/verify_public_evidence.py
 
 required_context:
   - .gitattributes
@@ -42,8 +42,19 @@ required_context:
   - docs/ai/README.md
   - docs/ai/android-anti-uninstall-testing.md
   - docs/ai/manifest.yaml
-  - config/device-matrix.json
+  - docs/config/targets.json
+  - docs/testing-index.md
+  - docs/tools/README.md
+  - docs/tools/run_evaluation.py
+  - docs/tools/runtime_projection.py
+  - docs/tools/verify-ai-context.sh
+  - docs/tools/verify_public_evidence.py
+  - docs/tools/tests/test_public_evidence.py
+  - docs/tools/tests/test_runtime_projection.py
+  - flutter/config/device-matrix.json
+  - flutter/evidence/ledger/android-tamper.jsonl
   - flutter/README.md
+  - flutter/report.md
   - flutter/scripts/phase4_latency_report.py
   - flutter/scripts/promote_evidence.py
   - flutter/scripts/run-android-tamper-matrix.sh
@@ -51,13 +62,10 @@ required_context:
   - flutter/tests/test_android_tamper_report.py
   - flutter/tests/test_phase4_latency_report.py
   - golang/README.md
+  - golang/report.md
   - next/README.md
-  - browser/README.md
+  - next/report.md
+  - browser-extention/README.md
+  - browser-extention/report.md
   - model/README.md
-  - orchestration/README.md
-  - orchestration/scripts/run_evaluation.py
-  - orchestration/scripts/runtime_projection.py
-  - orchestration/scripts/verify_public_evidence.py
-  - orchestration/tests/test_public_evidence.py
-  - orchestration/tests/test_runtime_projection.py
-  - scripts/verify-ai-context.sh
+  - model/report.md

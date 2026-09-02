@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 
-ROOT = pathlib.Path(__file__).parents[2]
+ROOT = pathlib.Path(__file__).parents[3]
 
 
 def load(name, path):
@@ -18,7 +18,7 @@ def load(name, path):
 
 VALIDATOR = load("android_validator", ROOT / "flutter/scripts/validate_android_tamper_report.py")
 PROMOTER = load("evidence_promoter", ROOT / "flutter/scripts/promote_evidence.py")
-PUBLIC = load("public_evidence", ROOT / "orchestration/scripts/verify_public_evidence.py")
+PUBLIC = load("public_evidence", ROOT / "docs/tools/verify_public_evidence.py")
 
 
 def record(**overrides):

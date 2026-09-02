@@ -13,6 +13,13 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CANONICAL_REPORTS = {
+    "flutter/report.md",
+    "golang/report.md",
+    "next/report.md",
+    "browser-extention/report.md",
+    "model/report.md",
+}
 FORBIDDEN_KEYS = {
     "url",
     "urls",
@@ -101,12 +108,20 @@ def main() -> int:
         if path.suffix.lower() in RAW_SUFFIXES and "private" not in path.parts:
             errors.append(f"raw artifact is public or staged: {path.relative_to(ROOT)}")
 
-    summaries = sorted((ROOT / "reports").glob("*summary*.md")) if (ROOT / "reports").exists() else []
-    canonical = ROOT / "reports/testing-summary.md"
-    if summaries != [canonical]:
-        errors.append("exactly one canonical report is required: reports/testing-summary.md")
+    report_files = {
+        str(path.relative_to(ROOT))
+        for path in ROOT.glob("*/report.md")
+    }
+    if report_files != CANONICAL_REPORTS:
+        errors.append(
+            "exactly one canonical report is required per technology: "
+            + ", ".join(sorted(CANONICAL_REPORTS))
+        )
+    legacy_reports = [path for path in public_files() if "reports" in path.relative_to(ROOT).parts]
+    for path in legacy_reports:
+        errors.append(f"legacy root report path is not allowed: {path.relative_to(ROOT)}")
 
-    for path in sorted((ROOT / "evidence/ledger").rglob("*.jsonl")) if (ROOT / "evidence/ledger").exists() else []:
+    for path in sorted(ROOT.glob("*/evidence/ledger/*.jsonl")):
         validate_ledger(path, errors)
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if not line.strip():

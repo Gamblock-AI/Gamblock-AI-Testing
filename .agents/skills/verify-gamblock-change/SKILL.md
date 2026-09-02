@@ -10,7 +10,7 @@ description: Verify a Gamblock-AI repository change before handoff. Use when fin
    from the files under verification.
 3. Confirm the documented capability state matches evidence: distinguish
    `implemented`, `stub`, `not wired`, and `planned`.
-4. Run `./scripts/verify-ai-context.sh`. During initial authoring of new,
+4. Run `./docs/tools/verify-ai-context.sh`. During initial authoring of new,
    unstaged context files, run it with `--allow-untracked` and explicitly report
    that relaxed tracking check.
 5. Run only the relevant repository linter/analyzer and AI-context validator by

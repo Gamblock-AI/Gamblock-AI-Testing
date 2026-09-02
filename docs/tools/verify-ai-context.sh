@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_CONTEXT_VERSION="2026-09-02.2"
+EXPECTED_CONTEXT_VERSION="2026-09-02.3"
 ALLOW_UNTRACKED=false
 ERRORS=0
 
 usage() {
   cat <<'EOF'
-Usage: scripts/verify-ai-context.sh [--allow-untracked]
+Usage: docs/tools/verify-ai-context.sh [--allow-untracked]
 
 Validate the repository-local AI context contract. Strict mode requires all
 context files to be tracked. --allow-untracked is intended only while authoring
@@ -56,7 +56,7 @@ required_files=(
   "GEMINI.md"
   ".github/copilot-instructions.md"
   ".cursor/rules/gamblock-ai.mdc"
-  "scripts/verify-ai-context.sh"
+  "docs/tools/verify-ai-context.sh"
 )
 
 for file in "${required_files[@]}"; do
@@ -75,9 +75,15 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-if [[ ! -x "scripts/verify-ai-context.sh" ]]; then
-  fail "scripts/verify-ai-context.sh must be executable"
+if [[ ! -x "docs/tools/verify-ai-context.sh" ]]; then
+  fail "docs/tools/verify-ai-context.sh must be executable"
 fi
+
+for directory in config evidence reports orchestration scripts tests; do
+  if [[ -d "$directory" ]]; then
+    fail "legacy root directory is not allowed: $directory"
+  fi
+done
 
 if ! grep -Fxq "context_version: \"$EXPECTED_CONTEXT_VERSION\"" \
   docs/ai/manifest.yaml && \

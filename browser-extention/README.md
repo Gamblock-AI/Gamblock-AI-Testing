@@ -9,7 +9,7 @@ records only aggregate status, duration, and an output hash in the canonical
 summary:
 
 ```sh
-python3 orchestration/scripts/run_evaluation.py --workspace-root .. --run-code-tests
+python3 docs/tools/run_evaluation.py --workspace-root .. --run-code-tests
 ```
 
 The extension remains passive: it must not classify, block, redirect, close

@@ -21,14 +21,17 @@ record-after. Reports contain only allowlisted device labels and state flags.
 EOF
 }
 
+SCRIPT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TESTING_ROOT="$(cd -- "$SCRIPT_ROOT/../.." && pwd)"
+
 command_name="${1:-}"
 if [[ -z "$command_name" ]]; then usage; exit 2; fi
 shift
 
 serial=""
 package_name="com.gamblock.gamblock_ai_apps.research"
-state_file="private/android-tamper-state.json"
-output_file="private/android-tamper.jsonl"
+state_file="$TESTING_ROOT/flutter/private/android-tamper-state.json"
+output_file="$TESTING_ROOT/flutter/private/android-tamper.jsonl"
 run_id=""; sample_id=""; device_alias=""; oem_family=""; android_api=""; build_mode="profile"
 scenario=""; surface=""; action=""; observed_action=""
 expected_outcome=""; actual_outcome=""; result=""; grant_state="none"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the single aggregate Gamblock-AI testing summary."""
+"""Generate aggregate Gamblock-AI reports, one per technology."""
 
 from __future__ import annotations
 
@@ -18,6 +18,13 @@ from typing import Any
 
 TESTING_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WORKSPACE_ROOT = TESTING_ROOT.parent
+REPORT_PATHS = {
+    "flutter": Path("flutter/report.md"),
+    "golang": Path("golang/report.md"),
+    "next": Path("next/report.md"),
+    "browser-extention": Path("browser-extention/report.md"),
+    "model": Path("model/report.md"),
+}
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -81,7 +88,7 @@ def pending(name: str, reason: str) -> dict[str, Any]:
 
 
 def read_android_summary() -> dict[str, Any]:
-    ledger = TESTING_ROOT / "evidence/ledger/android-tamper.jsonl"
+    ledger = TESTING_ROOT / "flutter/evidence/ledger/android-tamper.jsonl"
     if not ledger.exists():
         return pending("android_anti_uninstall", "No promoted Android tamper ledger exists.")
     validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
@@ -89,7 +96,7 @@ def read_android_summary() -> dict[str, Any]:
     if errors:
         return {"name": "android_anti_uninstall", "status": "failed", "error_count": len(errors)}
     aggregate = validator.summarize(records)
-    matrix = json.loads((TESTING_ROOT / "config/device-matrix.json").read_text(encoding="utf-8"))
+    matrix = json.loads((TESTING_ROOT / "flutter/config/device-matrix.json").read_text(encoding="utf-8"))
     observed_families = {record["oem_family"] for record in records}
     observed_scenarios = {record["scenario"] for record in records}
     required_families = set(matrix["required_oem_families"])
@@ -108,14 +115,20 @@ def read_android_summary() -> dict[str, Any]:
 
 
 def read_latency_summary() -> dict[str, Any]:
-    ledger = TESTING_ROOT / "evidence/ledger/phase4-latency.jsonl"
+    ledger = TESTING_ROOT / "flutter/evidence/ledger/phase4-latency.jsonl"
     if not ledger.exists():
         return pending("phase4_latency", "No promoted Phase 4 latency ledger exists.")
     validator = load_module("phase4_latency_validator", TESTING_ROOT / "flutter/scripts/phase4_latency_report.py")
     records, errors = validator.load_records([ledger])
     if errors:
         return {"name": "phase4_latency", "status": "failed", "error_count": len(errors)}
-    aggregate = validator.report(records, minimum_samples=30, target_ms=200.0)
+    targets = json.loads((TESTING_ROOT / "docs/config/targets.json").read_text(encoding="utf-8"))
+    latency_targets = targets["latency"]
+    aggregate = validator.report(
+        records,
+        minimum_samples=int(latency_targets["minimum_successful_samples_per_group"]),
+        target_ms=float(latency_targets["input_to_visible_ms_p95_exclusive"]),
+    )
     return {
         "name": "phase4_latency",
         "status": "passed" if aggregate["passed"] else "pending",
@@ -142,7 +155,7 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             "runtime_projection",
             [
                 sys.executable,
-                str(TESTING_ROOT / "orchestration/scripts/runtime_projection.py"),
+                str(TESTING_ROOT / "docs/tools/runtime_projection.py"),
                 "--workspace-root",
                 str(workspace_root),
                 "--output",
@@ -172,7 +185,7 @@ def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[st
     commands = [
         ("model_tooling_unit", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], workspace_root / "gamblock-ai-model"),
         ("testing_flutter_unit", [sys.executable, "-m", "unittest", "discover", "-s", "flutter/tests", "-p", "test_*.py"], TESTING_ROOT),
-        ("testing_orchestration_unit", [sys.executable, "-m", "unittest", "discover", "-s", "orchestration/tests", "-p", "test_*.py"], TESTING_ROOT),
+        ("testing_orchestration_unit", [sys.executable, "-m", "unittest", "discover", "-s", "docs/tools/tests", "-p", "test_*.py"], TESTING_ROOT),
         ("extension_unit", ["npm", "test"], workspace_root / "browser_extension"),
         ("website_unit", ["npm", "test", "--", "hooks/use-approval.test.tsx", "hooks/use-accountability.test.tsx", "lib/recovery/runtime.test.ts"], workspace_root / "gamblock-ai-website"),
         ("backend_unit", ["go", "test", "./internal/service", "-run", "Test(ProtectionGrantSigner_SignsDeviceBoundES256Grant|Accountability_CreateApprovalRequestAndResolve|Admin_EmergencyKeyGenerateAndValidate|ReflectionService)"], workspace_root / "gamblock-ai-backend"),
@@ -194,54 +207,99 @@ def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[st
     return results
 
 
-def render_summary(android: dict[str, Any], latency: dict[str, Any], model: dict[str, Any], projection: dict[str, Any], checks: list[dict[str, Any]]) -> str:
+def select_checks(checks: list[dict[str, Any]], names: set[str], fallback_name: str) -> list[dict[str, Any]]:
+    selected = [item for item in checks if item.get("name") in names]
+    if selected:
+        return selected
+    if checks:
+        fallback = dict(checks[0])
+        fallback["name"] = fallback_name
+        return [fallback]
+    return [pending(fallback_name, "Not requested; use --run-code-tests explicitly.")]
+
+
+def render_check_section(checks: list[dict[str, Any]], names: set[str], fallback_name: str) -> list[str]:
     lines = [
-        "# Gamblock-AI Testing Summary",
-        "",
-        "This is the canonical cross-repository testing summary. It is generated",
-        "from the public aggregate ledger and aggregate command results only.",
-        "Raw URL, domain, DOM, browsing history, screenshot, serial, credential,",
-        "participant, and raw log data are never included.",
-        "",
-        "## Evidence status",
-        "",
-        "| Evidence family | Status | Aggregate |",
-        "|---|---|---|",
-        f"| Android anti-uninstall | {android['status']} | {android.get('sample_count', 0)} samples / {android.get('group_count', 0)} groups |",
-        f"| Phase 4 latency | {latency['status']} | {latency.get('group_count', 0)} groups |",
-        f"| Model evidence | {model['status']} | {model.get('aggregate', {}).get('evidence_maturity', 'not generated')} |",
-        f"| Runtime projection | {projection['status']} | {projection.get('aggregate', {}).get('accuracy', 'not generated')} accuracy when generated |",
-        "",
-        "## Android baseline",
-        "",
-        "The initial baseline contains seven validated Android Research samples",
-        "from one AOSP/Pixel device. This is provisional evidence and does not",
-        "establish compatibility across Samsung, Xiaomi/Redmi, OPPO/Realme, or",
-        "Vivo devices. The interrupted reboot scenario remains pending.",
-        "",
         "## Component checks",
         "",
         "| Check | Status |",
         "|---|---|",
     ]
-    lines.extend(f"| {item['name']} | {item['status']} |" for item in checks)
+    lines.extend(f"| {item['name']} | {item['status']} |" for item in select_checks(checks, names, fallback_name))
+    return lines
+
+
+def render_report(title: str, description: str, sections: list[str]) -> str:
+    lines = [
+        f"# {title}",
+        "",
+        "This is the canonical aggregate report for this technology. It is",
+        "generated from validated public evidence and aggregate command results.",
+        "Raw URL, domain, DOM, browsing history, screenshot, serial, credential,",
+        "participant, and raw log data are never included.",
+        "",
+        description,
+        "",
+    ]
+    lines.extend(sections)
     lines.extend([
         "",
         "## Interpretation limits",
         "",
         "Offline replay is not physical browser, Android, or Windows runtime proof.",
-        "A missing matrix cell remains pending. Component repositories retain",
-        "ownership of their source code and local unit tests; this repository owns",
-        "the cross-repository evidence ledger and this summary only.",
+        "A missing matrix cell remains pending. This report contains aggregate",
+        "results only; source code and component unit tests remain in their owners.",
         "",
     ])
     return "\n".join(lines)
 
 
+def render_flutter_report(android: dict[str, Any], latency: dict[str, Any], checks: list[dict[str, Any]]) -> str:
+    sections = [
+        "## Android anti-uninstall",
+        "",
+        "| Status | Samples | Groups | OEM families | Scenarios | Coverage complete |",
+        "|---|---:|---:|---:|---:|---|",
+        f"| {android.get('status', 'pending')} | {android.get('sample_count', 0)} | {android.get('group_count', 0)} | {android.get('oem_family_count', 0)} | {android.get('scenario_count', 0)} | {android.get('coverage_complete', False)} |",
+        "",
+        "## Phase 4 latency",
+        "",
+        "| Status | Groups | Passed groups |",
+        "|---|---:|---:|",
+        f"| {latency.get('status', 'pending')} | {latency.get('group_count', 0)} | {latency.get('passed_group_count', 0)} |",
+        "",
+    ]
+    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "android_instrumented_runtime"}, "flutter_component_checks"))
+    return render_report("Gamblock-AI Flutter / Android Report", "This report covers Flutter client checks and Android Research runtime evidence.", sections)
+
+
+def render_component_report(title: str, description: str, checks: list[dict[str, Any]], names: set[str], fallback_name: str) -> str:
+    return render_report(title, description, render_check_section(checks, names, fallback_name))
+
+
+def render_model_report(model: dict[str, Any], projection: dict[str, Any], checks: list[dict[str, Any]]) -> str:
+    sections = [
+        "## Model replay",
+        "",
+        "| Status | Evidence maturity | Test rows |",
+        "|---|---|---:|",
+        f"| {model.get('status', 'pending')} | {model.get('aggregate', {}).get('evidence_maturity', 'not generated')} | {model.get('aggregate', {}).get('dataset_rows', 'not generated')} |",
+        "",
+        "## Runtime projection",
+        "",
+        "| Status | Accuracy | Precision | Recall | F1 | False-positive rate |",
+        "|---|---:|---:|---:|---:|---:|",
+        f"| {projection.get('status', 'pending')} | {projection.get('aggregate', {}).get('accuracy', 'not generated')} | {projection.get('aggregate', {}).get('precision', 'not generated')} | {projection.get('aggregate', {}).get('recall', 'not generated')} | {projection.get('aggregate', {}).get('f1_score', 'not generated')} | {projection.get('aggregate', {}).get('false_positive_rate', 'not generated')} |",
+        "",
+    ]
+    sections.extend(render_check_section(checks, {"model_tooling_unit"}, "model_tooling_unit"))
+    return render_report("Gamblock-AI Model Report", "This report covers offline model evidence and runtime projection only.", sections)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace-root", type=Path, default=DEFAULT_WORKSPACE_ROOT)
-    parser.add_argument("--output", type=Path, default=TESTING_ROOT / "reports/testing-summary.md")
+    parser.add_argument("--output-dir", type=Path, default=TESTING_ROOT)
     parser.add_argument("--run-model-replay", action="store_true")
     parser.add_argument("--run-code-tests", action="store_true")
     parser.add_argument("--include-flutter", action="store_true")
@@ -258,9 +316,20 @@ def main() -> int:
     checks = run_code_checks(workspace_root, args.include_flutter) if args.run_code_tests else [
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render_summary(android, latency, model, projection, checks), encoding="utf-8")
-    print(json.dumps({"output": str(args.output), "android_samples": android.get("sample_count", 0)}, sort_keys=True))
+    reports = {
+        "flutter": render_flutter_report(android, latency, checks),
+        "golang": render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit"),
+        "next": render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit"),
+        "browser-extention": render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit"),
+        "model": render_model_report(model, projection, checks),
+    }
+    outputs: dict[str, str] = {}
+    for technology, content in reports.items():
+        output = args.output_dir / REPORT_PATHS[technology]
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(content, encoding="utf-8")
+        outputs[technology] = str(output)
+    print(json.dumps({"outputs": outputs, "android_samples": android.get("sample_count", 0)}, sort_keys=True))
     return 0
 
 

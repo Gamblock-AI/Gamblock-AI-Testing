@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-02.2`
+Context version: `2026-09-02.3`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -9,28 +9,29 @@ workflow, privacy-safe evidence ledger, and one canonical testing summary.
 
 ## Source of truth
 
-- `config/device-matrix.json` defines required device and scenario coverage.
-- `evidence/ledger/` contains the public, aggregate-only evidence ledger.
-- `reports/testing-summary.md` is the only human-readable testing summary.
+- `flutter/config/device-matrix.json` defines required Android device and
+  scenario coverage.
+- `<technology>/evidence/ledger/` contains public, aggregate-only evidence for
+  that technology.
+- Each technology's `<technology>/report.md` is its only human-readable
+  canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
 
 ## Directory ownership
 
 - `flutter/` owns Flutter/Android anti-uninstall, Android tamper, and Phase 4
   latency harnesses plus their tests.
-- `golang/`, `next/`, and `browser/` own the test entrypoint documentation for
+- `golang/`, `next/`, and `browser-extention/` own the test entrypoint documentation for
   the Go backend, Next.js website, and browser extension respectively. Their
   source and production tests remain in the component repositories.
 - `model/` documents model-test scope without mirroring model source code.
-- `orchestration/` owns the cross-system runner, public-evidence validator,
-  runtime projection, and orchestration tests.
-- `scripts/verify-ai-context.sh` is repository-level context validation and is
-  intentionally kept at the root-level scripts path.
+- `docs/tools/` owns the cross-system runner, public-evidence validator,
+  runtime projection, context validator, and orchestration tests.
 
-Do not create a second summary in a component repository, the umbrella, or a
-generated PDF/JSON artifact. A validator may emit temporary JSON to stdout or
-an ignored temporary directory, but the committed summary remains the single
-canonical report.
+Do not create a second report for the same technology in another folder, the
+umbrella, or a generated PDF/JSON artifact. A validator may emit temporary JSON
+to stdout or an ignored temporary directory, but each committed
+`<technology>/report.md` remains the sole canonical report for that technology.
 
 ## Non-negotiable privacy boundaries
 
@@ -62,8 +63,8 @@ duration, and output hashes.
 Run the context validator and public-evidence checks by default:
 
 ```sh
-./scripts/verify-ai-context.sh
-python3 orchestration/scripts/verify_public_evidence.py
+./docs/tools/verify-ai-context.sh
+python3 docs/tools/verify_public_evidence.py
 ```
 
 Tests, builds, Firebase reservations, and device lifecycle actions require an
@@ -72,7 +73,8 @@ not run automatically on push because they may consume quota.
 
 ## Publication boundary
 
-The repository is public. Only validated files under `evidence/ledger/` and the
-canonical summary may be committed as test results. Local staging files belong
-under ignored `private/` or an external temporary directory. Never commit
-secrets, raw screenshots, APKs, device exports, or generated build outputs.
+The repository is public. Only validated files under technology-owned
+`evidence/ledger/` folders and the matching canonical reports may be committed
+as test results. Local staging files belong under ignored `<technology>/private/`
+or an external temporary directory. Never commit secrets, raw screenshots,
+APKs, device exports, or generated build outputs.

@@ -4,34 +4,32 @@ Cross-repository evaluation and privacy-safe runtime evidence for Gamblock-AI.
 The repository covers model replay, passive runtime/latency evidence, Android
 Research anti-uninstall behavior, and aggregate component verification.
 
-The canonical result is [`reports/testing-summary.md`](reports/testing-summary.md).
-The JSONL files under [`evidence/ledger/`](evidence/ledger/) are source records,
-not a second summary. Component repositories link here instead of copying test
-results.
+Each technology owns one canonical aggregate report. The link-only index is
+[`docs/testing-index.md`](docs/testing-index.md); JSONL files under a technology's
+`evidence/ledger/` folder are source records, not alternate reports. Component
+repositories link here instead of copying test results.
 
 ## Layout
 
 | Path | Responsibility |
 |---|---|
-| `config/device-matrix.json` | Required OEM/API/scenario coverage |
-| `evidence/ledger/` | Public aggregate-only records |
-| `reports/testing-summary.md` | Single canonical human summary |
+| `docs/config/targets.json` | Shared detection and latency targets |
+| `docs/testing-index.md` | Link-only index of canonical reports |
+| `docs/tools/` | Cross-system runner, validators, and tooling tests |
 | `flutter/` | Flutter/Android anti-uninstall and latency tooling/tests |
 | `golang/` | Go backend test entrypoint and scope |
 | `next/` | Next.js website test entrypoint and scope |
-| `browser/` | Browser extension test entrypoint and scope |
+| `browser-extention/` | Browser extension test entrypoint and scope |
 | `model/` | Model test entrypoint and scope |
-| `orchestration/` | Cross-system runner, public-evidence validation, and tests |
-| `scripts/verify-ai-context.sh` | Repository-level context validator |
+| `<technology>/report.md` | One canonical report per technology |
+| `flutter/config/` and `flutter/evidence/` | Android matrix and public records |
 | `docs/ai/` | AI context and Android/Firebase runbook |
 
 ## Run from the umbrella
 
 ```sh
-python3 gamblock-ai-testing/orchestration/scripts/run_evaluation.py \
-  --workspace-root . \
-  --output gamblock-ai-testing/reports/testing-summary.md
-python3 gamblock-ai-testing/orchestration/scripts/verify_public_evidence.py
+python3 gamblock-ai-testing/docs/tools/run_evaluation.py --workspace-root .
+python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 ```
 
 The evaluation runner records missing physical-device and Windows evidence as
@@ -51,7 +49,7 @@ validator before publication.
 
 ## Public evidence policy
 
-Public records contain only anonymized labels, outcomes, supported state flags,
-durations, and hashes. URLs, DOM, browsing history, screenshots, serials,
-credentials, participant information, and raw logs remain local and are
-rejected by CI.
+Public records and reports contain only anonymized labels, outcomes, supported
+state flags, durations, metrics, and hashes. URLs, DOM, browsing history,
+screenshots, serials, credentials, participant information, and raw logs remain
+local and are rejected by the validator.

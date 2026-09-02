@@ -1,5 +1,5 @@
 # Local evidence staging; only promoted allowlisted records are public.
-/private/
+*/private/
 /tmp/
 *.png
 *.jpg
@@ -15,9 +15,10 @@
 # Generated/intermediate evaluation output.
 __pycache__/
 *.pyc
-/reports/.generated/
-/reports/*.json
-/reports/*.pdf
+/docs/tools/.generated/
+*/.generated/
+*.json.tmp
+*.pdf
 
 # Credentials and local configuration.
 .env

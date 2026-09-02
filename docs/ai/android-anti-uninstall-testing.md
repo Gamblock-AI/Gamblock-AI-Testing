@@ -22,7 +22,7 @@ Required scenario families:
 - invalid, expired, or wrong-device grants must not authorize removal.
 
 The required OEM families and scenario list are versioned in
-[`config/device-matrix.json`](../../config/device-matrix.json). A missing
+[`flutter/config/device-matrix.json`](../../flutter/config/device-matrix.json). A missing
 scenario is `pending`, never `passed`.
 
 ## Firebase Device Streaming workflow
@@ -67,7 +67,7 @@ flow:
 ```sh
 ./flutter/scripts/run-android-tamper-matrix.sh capture-before \
   --device SERIAL \
-  --state private/pixel-settings.state.json \
+  --state flutter/private/pixel-settings.state.json \
   --run-id tamper_pixel_2026_09 \
   --sample-id pixel_settings_uninstall_01 \
   --device-alias pixel_9_pro_remote_01 \
@@ -80,7 +80,7 @@ flow:
 ./flutter/scripts/run-android-tamper-matrix.sh record-after \
   --device SERIAL \
   --state private/pixel-settings.state.json \
-  --output private/android-tamper.jsonl \
+  --output flutter/private/android-tamper.jsonl \
   --scenario settings_uninstall \
   --surface settings \
   --action uninstall \
@@ -99,10 +99,10 @@ participant device.
 Validate and promote only aggregate records:
 
 ```sh
-python3 flutter/scripts/validate_android_tamper_report.py private/android-tamper.jsonl
+python3 flutter/scripts/validate_android_tamper_report.py flutter/private/android-tamper.jsonl
 python3 flutter/scripts/promote_evidence.py android-tamper \
-  --input private/android-tamper.jsonl \
-  --output evidence/ledger/android-tamper.jsonl
+  --input flutter/private/android-tamper.jsonl \
+  --output flutter/evidence/ledger/android-tamper.jsonl
 ```
 
 The promoter rejects raw browsing/account fields, device serials, local paths,
@@ -115,4 +115,4 @@ The initial Pixel baseline is provisional and does not generalize to Samsung,
 Xiaomi/Redmi, OPPO/Realme, or Vivo. OS-level force-stop behavior may be
 unresistable; record the observed state rather than relabeling it as a pass.
 Runtime evidence must be distinguished from source-code or offline replay
-evidence in the canonical summary.
+evidence in the canonical Flutter/Android report.

@@ -18,4 +18,4 @@ python3 flutter/scripts/validate_android_tamper_report.py private/android-tamper
 ```
 
 Only validated aggregate records may be promoted to the shared
-`evidence/ledger/`; raw device output remains local.
+`flutter/evidence/ledger/`; raw device output remains local.
