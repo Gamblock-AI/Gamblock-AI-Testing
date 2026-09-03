@@ -52,6 +52,13 @@ class RunEvaluationReportTest(unittest.TestCase):
             RUNNER.report_keys_for_components(["browser_extension"]),
         )
 
+    def test_website_component_selection_includes_unit_and_e2e(self):
+        self.assertEqual(
+            {"website_unit", "website_e2e"},
+            RUNNER.check_names_for_components(["website"]),
+        )
+        self.assertEqual({"next"}, RUNNER.report_keys_for_components(["website"]))
+
     def test_targeted_code_checks_run_only_browser_extension(self):
         with mock.patch.object(
             RUNNER,
@@ -78,6 +85,63 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertEqual("backend_unit", run_command.call_args.args[0])
         self.assertEqual(["make", "test"], run_command.call_args.args[1])
         self.assertEqual(ROOT.parent / "gamblock-ai-backend", run_command.call_args.args[2])
+
+    def test_targeted_website_checks_run_unit_and_e2e(self):
+        with mock.patch.object(
+            RUNNER,
+            "run_command",
+            side_effect=[
+                {"name": "website_unit", "status": "passed"},
+                {"name": "website_e2e", "status": "passed"},
+            ],
+        ) as run_command:
+            checks = RUNNER.run_code_checks(ROOT.parent, include_flutter=False, components=["website"])
+
+        self.assertEqual(["website_unit", "website_e2e"], [check["name"] for check in checks])
+        self.assertEqual(
+            [
+                mock.call(
+                    "website_unit",
+                    ["npm", "test"],
+                    ROOT.parent / "gamblock-ai-website",
+                    ROOT.parent,
+                ),
+                mock.call(
+                    "website_e2e",
+                    ["npm", "run", "e2e"],
+                    ROOT.parent / "gamblock-ai-website",
+                    ROOT.parent,
+                ),
+            ],
+            run_command.call_args_list,
+        )
+
+    def test_website_report_renders_only_aggregate_check_status(self):
+        report = RUNNER.render_component_report(
+            "Gamblock-AI Next.js Report",
+            "This report covers the Next.js website component checks.",
+            [
+                {
+                    "name": "website_unit",
+                    "status": "passed",
+                    "output_sha256": "unit-hash",
+                },
+                {
+                    "name": "website_e2e",
+                    "status": "passed",
+                    "output_sha256": "e2e-hash",
+                    "output": "browser URL and account data must not appear",
+                },
+            ],
+            RUNNER.COMPONENT_CHECK_NAMES["website"],
+            "website_unit",
+        )
+
+        self.assertIn("| website_unit | passed |", report)
+        self.assertIn("| website_e2e | passed |", report)
+        self.assertNotIn("unit-hash", report)
+        self.assertNotIn("e2e-hash", report)
+        self.assertNotIn("browser URL and account data", report)
 
     def test_default_component_selection_preserves_all_reports(self):
         self.assertIsNone(RUNNER.check_names_for_components(None))

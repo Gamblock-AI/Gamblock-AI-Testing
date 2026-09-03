@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-03.2`
+Context version: `2026-09-03.3`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -13,7 +13,7 @@ orchestration and public evidence. It does not own product runtime code.
 | Model evidence storage | Implemented | Permanent aggregate JSON is stored under `model/evidence/aggregate/` and allowlisted aggregate-generated charts under `model/evidence/visuals/`; raw replay inputs remain in ignored `model/private/`. |
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and the configured p95/sample gate. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. Valid evidence and the retest queue are rendered separately. |
-| Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks. |
+| Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks; the website check includes the complete Vitest and Playwright E2E suites. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
 ## Required context

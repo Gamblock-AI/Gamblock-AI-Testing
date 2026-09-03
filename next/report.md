@@ -11,11 +11,12 @@ This report covers the Next.js website component checks.
 
 | Check | Status |
 |---|---|
-| website_unit | pending |
+| website_unit | passed |
+| website_e2e | passed |
 
 ## Interpretation limits
 
-Offline replay is not physical browser, Android, or Windows runtime proof.
+Offline evaluation is not physical browser, Android, or Windows runtime proof.
 A missing matrix cell remains pending. This report contains aggregate-safe
 results and validated scenario detail where applicable; source code and
 component unit tests remain in their owners.

@@ -39,7 +39,7 @@ COMPONENT_CHECK_NAMES = {
         "flutter_pattern_interrupt_unit",
     },
     "backend": {"backend_unit"},
-    "website": {"website_unit"},
+    "website": {"website_unit", "website_e2e"},
     "browser_extension": {"extension_unit"},
     "model": {"model_tooling_unit"},
 }
@@ -301,7 +301,8 @@ def run_code_checks(
         ("testing_flutter_unit", [sys.executable, "-m", "unittest", "discover", "-s", "flutter/tests", "-p", "test_*.py"], TESTING_ROOT),
         ("testing_orchestration_unit", [sys.executable, "-m", "unittest", "discover", "-s", "docs/tools/tests", "-p", "test_*.py"], TESTING_ROOT),
         ("extension_unit", ["npm", "test"], workspace_root / "browser_extension"),
-        ("website_unit", ["npm", "test", "--", "hooks/use-approval.test.tsx", "hooks/use-accountability.test.tsx", "lib/recovery/runtime.test.ts"], workspace_root / "gamblock-ai-website"),
+        ("website_unit", ["npm", "test"], workspace_root / "gamblock-ai-website"),
+        ("website_e2e", ["npm", "run", "e2e"], workspace_root / "gamblock-ai-website"),
         ("backend_unit", ["make", "test"], workspace_root / "gamblock-ai-backend"),
         ("client_python_contract_unit", [sys.executable, "-m", "unittest", "discover", "-s", "test/scripts", "-p", "*test.py"], workspace_root / "gamblock_ai_apps"),
     ]
@@ -795,7 +796,7 @@ def main() -> int:
     if "golang" in selected_reports:
         reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit")
     if "next" in selected_reports:
-        reports["next"] = render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit")
+        reports["next"] = render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, COMPONENT_CHECK_NAMES["website"], "website_unit")
     if "browser-extention" in selected_reports:
         reports["browser-extention"] = render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit")
     if "model" in selected_reports:
