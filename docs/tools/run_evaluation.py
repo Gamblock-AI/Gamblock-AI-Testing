@@ -302,7 +302,7 @@ def run_code_checks(
         ("testing_orchestration_unit", [sys.executable, "-m", "unittest", "discover", "-s", "docs/tools/tests", "-p", "test_*.py"], TESTING_ROOT),
         ("extension_unit", ["npm", "test"], workspace_root / "browser_extension"),
         ("website_unit", ["npm", "test", "--", "hooks/use-approval.test.tsx", "hooks/use-accountability.test.tsx", "lib/recovery/runtime.test.ts"], workspace_root / "gamblock-ai-website"),
-        ("backend_unit", ["go", "test", "./internal/service", "-run", "Test(ProtectionGrantSigner_SignsDeviceBoundES256Grant|Accountability_CreateApprovalRequestAndResolve|Admin_EmergencyKeyGenerateAndValidate|ReflectionService)"], workspace_root / "gamblock-ai-backend"),
+        ("backend_unit", ["make", "test"], workspace_root / "gamblock-ai-backend"),
         ("client_python_contract_unit", [sys.executable, "-m", "unittest", "discover", "-s", "test/scripts", "-p", "*test.py"], workspace_root / "gamblock_ai_apps"),
     ]
     if include_flutter and (selected_names is None or "flutter_pattern_interrupt_unit" in selected_names):

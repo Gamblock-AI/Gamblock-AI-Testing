@@ -65,6 +65,20 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertEqual("extension_unit", run_command.call_args.args[0])
         self.assertEqual(ROOT.parent / "browser_extension", run_command.call_args.args[2])
 
+    def test_targeted_backend_check_runs_full_backend_suite(self):
+        with mock.patch.object(
+            RUNNER,
+            "run_command",
+            return_value={"name": "backend_unit", "status": "passed"},
+        ) as run_command:
+            checks = RUNNER.run_code_checks(ROOT.parent, include_flutter=False, components=["backend"])
+
+        self.assertEqual(["backend_unit"], [check["name"] for check in checks])
+        run_command.assert_called_once()
+        self.assertEqual("backend_unit", run_command.call_args.args[0])
+        self.assertEqual(["make", "test"], run_command.call_args.args[1])
+        self.assertEqual(ROOT.parent / "gamblock-ai-backend", run_command.call_args.args[2])
+
     def test_default_component_selection_preserves_all_reports(self):
         self.assertIsNone(RUNNER.check_names_for_components(None))
         self.assertEqual(set(RUNNER.REPORT_PATHS), RUNNER.report_keys_for_components(None))

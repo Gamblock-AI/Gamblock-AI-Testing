@@ -11,11 +11,11 @@ This report covers the Go backend component checks.
 
 | Check | Status |
 |---|---|
-| backend_unit | pending |
+| backend_unit | passed |
 
 ## Interpretation limits
 
-Offline replay is not physical browser, Android, or Windows runtime proof.
+Offline evaluation is not physical browser, Android, or Windows runtime proof.
 A missing matrix cell remains pending. This report contains aggregate-safe
 results and validated scenario detail where applicable; source code and
 component unit tests remain in their owners.

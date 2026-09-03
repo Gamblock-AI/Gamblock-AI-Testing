@@ -9,7 +9,8 @@ records only aggregate status, duration, and an output hash in the canonical
 summary. Run it from the testing repository root with:
 
 ```sh
-python3 docs/tools/run_evaluation.py --workspace-root .. --run-code-tests
+python3 docs/tools/run_evaluation.py \
+  --workspace-root .. --run-code-tests --component backend
 ```
 
 No backend URL, account data, secret, or raw test output belongs in public
