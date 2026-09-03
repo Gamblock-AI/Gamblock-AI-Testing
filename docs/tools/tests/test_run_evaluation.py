@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 import pathlib
 import unittest
@@ -43,6 +44,69 @@ def record(**overrides):
 
 
 class RunEvaluationReportTest(unittest.TestCase):
+    def test_flutter_component_includes_windows_extension_model_e2e(self):
+        self.assertIn(
+            "windows_extension_model_e2e",
+            RUNNER.check_names_for_components(["flutter"]),
+        )
+
+    def test_windows_runtime_is_pending_off_windows(self):
+        result = RUNNER.run_windows_extension_model_e2e(ROOT.parent)
+
+        self.assertEqual("windows_extension_model_e2e", result["name"])
+        self.assertEqual("pending", result["status"])
+
+    def test_windows_runtime_keeps_only_allowlisted_aggregate_fields(self):
+        summary = {
+            "check": "windows_extension_model_e2e",
+            "status": "passed",
+            "browser_family": "chrome",
+            "build_mode": "release",
+            "scenario_total": 7,
+            "scenario_passed": 7,
+            "model_version": "gamblock-lr-14012bec0479",
+            "ruleset_version": "gamblock-rules-v2",
+            "model_sha256": "a" * 64,
+            "rules_sha256": "b" * 64,
+            "fixtures_sha256": "c" * 64,
+            "source_onnx_sha256": "d" * 64,
+            "intervention_samples": 2,
+            "raw_url_or_dom_emitted": False,
+            "raw_dom": "must-not-be-retained",
+        }
+        command_result = {
+            "name": "windows_extension_model_e2e",
+            "status": "passed",
+            "_captured_output": json.dumps(summary),
+        }
+        with mock.patch.object(RUNNER.sys, "platform", "win32"), mock.patch.object(
+            RUNNER.shutil, "which", return_value="pwsh"
+        ), mock.patch.object(RUNNER, "run_command", return_value=command_result):
+            result = RUNNER.run_windows_extension_model_e2e(ROOT.parent)
+
+        self.assertEqual("passed", result["status"])
+        self.assertEqual(7, result["scenario_passed"])
+        self.assertEqual("gamblock-lr-14012bec0479", result["model_version"])
+        self.assertEqual("a" * 64, result["model_sha256"])
+        self.assertEqual("d" * 64, result["source_onnx_sha256"])
+        self.assertFalse(result["raw_url_or_dom_emitted"])
+        self.assertNotIn("raw_dom", result)
+        self.assertNotIn("_captured_output", result)
+
+    def test_flutter_report_renders_windows_runtime_status(self):
+        report = RUNNER.render_flutter_report(
+            {"status": "pending"},
+            {"status": "pending"},
+            [{"name": "windows_extension_model_e2e", "status": "pending", "reason": "windows_required"}],
+            [],
+            {"devices": []},
+        )
+
+        self.assertIn("## Windows extension–model runtime", report)
+        self.assertIn("| windows_extension_model_e2e | pending |", report)
+        self.assertIn("windows_required", report)
+        self.assertIn("raw URL, DOM, token, screenshot", report)
+
     def test_component_selection_targets_only_browser_extension(self):
         self.assertEqual(
             {"extension_unit"},

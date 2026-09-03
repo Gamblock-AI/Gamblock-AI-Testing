@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,7 @@ COMPONENT_CHECK_NAMES = {
         "testing_flutter_unit",
         "client_python_contract_unit",
         "flutter_pattern_interrupt_unit",
+        "windows_extension_model_e2e",
     },
     "backend": {"backend_unit", "backend_integration"},
     "website": {"website_unit", "website_e2e"},
@@ -63,7 +65,14 @@ def output_hash(output: str) -> str:
     return hashlib.sha256(output.encode("utf-8")).hexdigest()
 
 
-def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, timeout: int = 240) -> dict[str, Any]:
+def run_command(
+    name: str,
+    command: list[str],
+    cwd: Path,
+    workspace_root: Path,
+    timeout: int = 240,
+    capture_output: bool = False,
+) -> dict[str, Any]:
     started = time.monotonic()
     environment = os.environ.copy()
     environment.setdefault("GOCACHE", "/tmp/gamblock-go-cache")
@@ -81,7 +90,7 @@ def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, 
         stdout = error.stdout.decode("utf-8", "replace") if isinstance(error.stdout, bytes) else (error.stdout or "")
         stderr = error.stderr.decode("utf-8", "replace") if isinstance(error.stderr, bytes) else (error.stderr or "")
         output = (stdout + "\n" + stderr).strip()
-        return {
+        result = {
             "name": name,
             "status": "failed",
             "return_code": None,
@@ -89,6 +98,9 @@ def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, 
             "output_sha256": output_hash(output),
             "reason": f"timeout after {timeout} seconds",
         }
+        if capture_output:
+            result["_captured_output"] = output
+        return result
 
     output = (completed.stdout + "\n" + completed.stderr).strip()
     status = "passed" if completed.returncode == 0 else "failed"
@@ -98,7 +110,7 @@ def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, 
         relative_cwd = str(cwd.resolve().relative_to(workspace_root.resolve()))
     except ValueError:
         relative_cwd = cwd.name
-    return {
+    result = {
         "name": name,
         "status": status,
         "return_code": completed.returncode,
@@ -106,6 +118,9 @@ def run_command(name: str, command: list[str], cwd: Path, workspace_root: Path, 
         "working_directory": relative_cwd,
         "output_sha256": output_hash(output),
     }
+    if capture_output:
+        result["_captured_output"] = output
+    return result
 
 
 def pending(name: str, reason: str) -> dict[str, Any]:
@@ -274,6 +289,79 @@ def run_model_tests(workspace_root: Path) -> dict[str, Any]:
     )
 
 
+def run_windows_extension_model_e2e(workspace_root: Path) -> dict[str, Any]:
+    """Run the real Windows browser-extension/service smoke test when available."""
+
+    if sys.platform != "win32":
+        return pending("windows_extension_model_e2e", "Requires an approved Windows 11 VM or Windows runner.")
+    script = TESTING_ROOT / "windows/run-extension-model-e2e.ps1"
+    if not script.exists():
+        return pending("windows_extension_model_e2e", "Windows integration harness is unavailable.")
+    powershell = shutil.which("pwsh") or shutil.which("powershell")
+    if not powershell:
+        return pending("windows_extension_model_e2e", "PowerShell is required on the Windows runner.")
+
+    result = run_command(
+        "windows_extension_model_e2e",
+        [
+            powershell,
+            "-NoProfile",
+            "-File",
+            str(script),
+            "-WorkspaceRoot",
+            str(workspace_root),
+        ],
+        TESTING_ROOT,
+        workspace_root,
+        timeout=900,
+        capture_output=True,
+    )
+    output = result.pop("_captured_output", "")
+    if not output:
+        return result
+    try:
+        summary = json.loads(output.splitlines()[-1])
+    except (json.JSONDecodeError, IndexError):
+        if result.get("status") == "passed":
+            result["status"] = "failed"
+            result["reason"] = "Windows harness did not emit an aggregate result."
+        return result
+    if not isinstance(summary, dict) or summary.get("check") != "windows_extension_model_e2e":
+        result["status"] = "failed"
+        result["reason"] = "Windows harness aggregate identity mismatch."
+        return result
+    summary_status = summary.get("status")
+    if summary_status not in {"passed", "pending", "failed"}:
+        result["status"] = "failed"
+        result["reason"] = "Windows harness aggregate status is invalid."
+        return result
+    result["status"] = summary_status
+    if summary.get("reason_code"):
+        result["reason"] = summary["reason_code"]
+    if summary_status == "passed" and summary.get("raw_url_or_dom_emitted") is not False:
+        result["status"] = "failed"
+        result["reason"] = "Windows harness raw-data assertion failed."
+    for key in (
+        "browser_family",
+        "build_mode",
+        "scenario_total",
+        "scenario_passed",
+        "model_version",
+        "ruleset_version",
+        "model_sha256",
+        "rules_sha256",
+        "fixtures_sha256",
+        "source_onnx_sha256",
+        "intervention_samples",
+        "intervention_min_ms",
+        "intervention_max_ms",
+        "raw_url_or_dom_emitted",
+    ):
+        if key in summary:
+            result[key] = summary[key]
+    return result
+
+
 def check_names_for_components(components: list[str] | None) -> set[str] | None:
     if components is None:
         return None
@@ -293,6 +381,7 @@ def run_code_checks(
     workspace_root: Path,
     include_flutter: bool,
     components: list[str] | None = None,
+    include_windows_e2e: bool = False,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     selected_names = check_names_for_components(components)
@@ -326,10 +415,12 @@ def run_code_checks(
         else:
             results.append(pending("backend_integration", "DATABASE_URL is not configured for an isolated PostgreSQL test database."))
     if selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
-        results.extend([
-            pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."),
-            pending("windows_service_runtime", "Requires an approved Windows VM/device run."),
-        ])
+        results.append(pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."))
+    if selected_names is None or "windows_extension_model_e2e" in selected_names:
+        if include_windows_e2e:
+            results.append(run_windows_extension_model_e2e(workspace_root))
+        else:
+            results.append(pending("windows_extension_model_e2e", "Use --include-windows-e2e on an approved Windows VM or runner."))
     return results
 
 
@@ -528,8 +619,58 @@ def render_flutter_report(
         "[`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).",
         "",
     ])
-    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "android_instrumented_runtime"}, "flutter_component_checks"))
+    sections.extend(render_windows_e2e_section(checks))
+    sections.extend(["", ""])
+    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "android_instrumented_runtime", "windows_extension_model_e2e"}, "flutter_component_checks"))
     return render_report("Gamblock-AI Flutter / Android Report", "This report covers Flutter client checks and Android Research runtime evidence.", sections)
+
+
+def render_windows_e2e_section(checks: list[dict[str, Any]]) -> list[str]:
+    check = next((item for item in checks if item.get("name") == "windows_extension_model_e2e"), None)
+    if check is None:
+        return [
+            "## Windows extension–model runtime",
+            "",
+            "| Status | Browser | Build | Scenarios | Passed | Reason |",
+            "|---|---|---|---:|---:|---|",
+            "| pending | — | — | — | — | Requires an approved Windows runner |",
+        ]
+    return [
+        "## Windows extension–model runtime",
+        "",
+        "| Status | Browser | Build | Scenarios | Passed | Reason | Model version | Ruleset version | Intervention samples |",
+        "|---|---|---|---:|---:|---|---|---|---:|",
+        "| "
+        + " | ".join(
+            markdown_value(check.get(key))
+            for key in (
+                "status",
+                "browser_family",
+                "build_mode",
+                "scenario_total",
+                "scenario_passed",
+                "reason",
+                "model_version",
+                "ruleset_version",
+                "intervention_samples",
+            )
+        )
+        + " |",
+        "",
+        "| Artifact | SHA-256 |",
+        "|---|---|",
+        *(
+            f"| {label} | {markdown_value(check.get(key))} |"
+            for label, key in (
+                ("Model asset", "model_sha256"),
+                ("Rules asset", "rules_sha256"),
+                ("Fixture set", "fixtures_sha256"),
+                ("Source ONNX", "source_onnx_sha256"),
+            )
+        ),
+        "",
+        "Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browser log data are never published.",
+    ]
 
 
 def render_component_report(title: str, description: str, checks: list[dict[str, Any]], names: set[str], fallback_name: str) -> str:
@@ -772,6 +913,7 @@ def main() -> int:
         help="Limit --run-code-tests and report generation to the selected component(s).",
     )
     parser.add_argument("--include-flutter", action="store_true")
+    parser.add_argument("--include-windows-e2e", action="store_true")
     args = parser.parse_args()
 
     if args.component and not (args.run_code_tests or args.run_model_tests):
@@ -789,7 +931,7 @@ def main() -> int:
     else:
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
-    checks = run_code_checks(workspace_root, args.include_flutter, args.component) if args.run_code_tests else [
+    checks = run_code_checks(workspace_root, args.include_flutter, args.component, args.include_windows_e2e) if args.run_code_tests else [
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
     model_checks = [check for check in checks if check.get("name") == "model_tooling_unit"]

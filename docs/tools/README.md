@@ -24,6 +24,18 @@ python3 docs/tools/run_evaluation.py \
   --workspace-root .. --run-code-tests --component browser_extension
 ```
 
+The real Windows extension-to-model smoke test is opt-in and must run from an
+interactive Windows VM with the service installed:
+
+```powershell
+python docs/tools/run_evaluation.py `
+  --workspace-root C:\src\gamblock-ai `
+  --run-code-tests --component flutter --include-windows-e2e
+```
+
+On non-Windows hosts the check remains `pending`; the runner never simulates a
+Windows runtime as a passed result.
+
 For model evaluation, it also writes the permanent aggregate JSON evidence to
 `model/evidence/aggregate/` and the allowlisted aggregate-generated charts to
 `model/evidence/visuals/`. Sensitive model inputs remain in ignored

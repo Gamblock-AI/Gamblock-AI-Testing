@@ -71,6 +71,11 @@ required_context:
   - next/report.md
   - browser-extention/README.md
   - browser-extention/report.md
+  - windows/README.md
+  - windows/e2e/package.json
+  - windows/e2e/package-lock.json
+  - windows/e2e/run.mjs
+  - windows/run-extension-model-e2e.ps1
   - model/README.md
   - model/report.md
   - model/evidence/aggregate/deployment_projection_evidence.json

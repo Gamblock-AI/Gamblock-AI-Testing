@@ -52,15 +52,35 @@ A blank result means that no prior informal outcome has been promoted.
 Service and cross-OEM interpretation are maintained in
 [`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).
 
+## Windows extension–model runtime
+
+| Status | Browser | Build | Scenarios | Passed | Reason | Model version | Ruleset version | Intervention samples |
+|---|---|---|---:|---:|---|---|---|---:|
+| pending | — | — | — | — | Use --include-windows-e2e on an approved Windows VM or runner. | — | — | — |
+
+| Artifact | SHA-256 |
+|---|---|
+| Model asset | — |
+| Rules asset | — |
+| Fixture set | — |
+| Source ONNX | — |
+
+Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browser log data are never published.
+
+
 ## Component checks
 
 | Check | Status |
 |---|---|
-| flutter_component_checks | pending |
+| flutter_pattern_interrupt_unit | pending |
+| testing_flutter_unit | passed |
+| client_python_contract_unit | passed |
+| android_instrumented_runtime | pending |
+| windows_extension_model_e2e | pending |
 
 ## Interpretation limits
 
-Offline replay is not physical browser, Android, or Windows runtime proof.
+Offline evaluation is not physical browser, Android, or Windows runtime proof.
 A missing matrix cell remains pending. This report contains aggregate-safe
 results and validated scenario detail where applicable; source code and
 component unit tests remain in their owners.
