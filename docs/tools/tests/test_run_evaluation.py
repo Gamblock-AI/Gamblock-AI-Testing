@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import pathlib
 import unittest
 from unittest import mock
@@ -80,11 +81,28 @@ class RunEvaluationReportTest(unittest.TestCase):
         ) as run_command:
             checks = RUNNER.run_code_checks(ROOT.parent, include_flutter=False, components=["backend"])
 
-        self.assertEqual(["backend_unit"], [check["name"] for check in checks])
+        self.assertEqual(["backend_unit", "backend_integration"], [check["name"] for check in checks])
         run_command.assert_called_once()
         self.assertEqual("backend_unit", run_command.call_args.args[0])
         self.assertEqual(["make", "test"], run_command.call_args.args[1])
         self.assertEqual(ROOT.parent / "gamblock-ai-backend", run_command.call_args.args[2])
+        self.assertEqual("pending", checks[1]["status"])
+
+    def test_targeted_backend_integration_runs_when_database_is_configured(self):
+        with mock.patch.dict(os.environ, {"DATABASE_URL": "postgres://test"}, clear=False), mock.patch.object(
+            RUNNER,
+            "run_command",
+            side_effect=[
+                {"name": "backend_unit", "status": "passed"},
+                {"name": "backend_integration", "status": "passed"},
+            ],
+        ) as run_command:
+            checks = RUNNER.run_code_checks(ROOT.parent, include_flutter=False, components=["backend"])
+
+        self.assertEqual(["backend_unit", "backend_integration"], [check["name"] for check in checks])
+        self.assertEqual(2, run_command.call_count)
+        self.assertEqual("backend_integration", run_command.call_args_list[1].args[0])
+        self.assertEqual(["make", "test-integration"], run_command.call_args_list[1].args[1])
 
     def test_targeted_website_checks_run_unit_and_e2e(self):
         with mock.patch.object(

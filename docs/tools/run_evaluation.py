@@ -38,7 +38,7 @@ COMPONENT_CHECK_NAMES = {
         "client_python_contract_unit",
         "flutter_pattern_interrupt_unit",
     },
-    "backend": {"backend_unit"},
+    "backend": {"backend_unit", "backend_integration"},
     "website": {"website_unit", "website_e2e"},
     "browser_extension": {"extension_unit"},
     "model": {"model_tooling_unit"},
@@ -317,6 +317,14 @@ def run_code_checks(
             results.append(pending(name, "Required component checkout is unavailable."))
         else:
             results.append(run_command(name, command, cwd, workspace_root))
+    if selected_names is None or "backend_integration" in selected_names:
+        backend_root = workspace_root / "gamblock-ai-backend"
+        if not backend_root.is_dir():
+            results.append(pending("backend_integration", "Required backend checkout is unavailable."))
+        elif os.environ.get("DATABASE_URL", "").strip():
+            results.append(run_command("backend_integration", ["make", "test-integration"], backend_root, workspace_root, timeout=360))
+        else:
+            results.append(pending("backend_integration", "DATABASE_URL is not configured for an isolated PostgreSQL test database."))
     if selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
         results.extend([
             pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."),
@@ -794,7 +802,7 @@ def main() -> int:
     if "flutter" in selected_reports:
         reports["flutter"] = render_flutter_report(android, latency, checks, android_records, device_register)
     if "golang" in selected_reports:
-        reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit")
+        reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, COMPONENT_CHECK_NAMES["backend"], "backend_unit")
     if "next" in selected_reports:
         reports["next"] = render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, COMPONENT_CHECK_NAMES["website"], "website_unit")
     if "browser-extention" in selected_reports:
