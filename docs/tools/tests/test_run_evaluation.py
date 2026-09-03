@@ -1,6 +1,7 @@
 import importlib.util
 import pathlib
 import unittest
+from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).parents[3]
@@ -41,6 +42,33 @@ def record(**overrides):
 
 
 class RunEvaluationReportTest(unittest.TestCase):
+    def test_component_selection_targets_only_browser_extension(self):
+        self.assertEqual(
+            {"extension_unit"},
+            RUNNER.check_names_for_components(["browser_extension"]),
+        )
+        self.assertEqual(
+            {"browser-extention"},
+            RUNNER.report_keys_for_components(["browser_extension"]),
+        )
+
+    def test_targeted_code_checks_run_only_browser_extension(self):
+        with mock.patch.object(
+            RUNNER,
+            "run_command",
+            return_value={"name": "extension_unit", "status": "passed"},
+        ) as run_command:
+            checks = RUNNER.run_code_checks(ROOT.parent, include_flutter=False, components=["browser_extension"])
+
+        self.assertEqual(["extension_unit"], [check["name"] for check in checks])
+        run_command.assert_called_once()
+        self.assertEqual("extension_unit", run_command.call_args.args[0])
+        self.assertEqual(ROOT.parent / "browser_extension", run_command.call_args.args[2])
+
+    def test_default_component_selection_preserves_all_reports(self):
+        self.assertIsNone(RUNNER.check_names_for_components(None))
+        self.assertEqual(set(RUNNER.REPORT_PATHS), RUNNER.report_keys_for_components(None))
+
     def test_model_evidence_paths_are_owned_by_testing_repository(self):
         self.assertEqual(RUNNER.MODEL_AGGREGATE_ROOT.parent, RUNNER.MODEL_EVIDENCE_ROOT)
         self.assertEqual(RUNNER.MODEL_VISUAL_ROOT.parent, RUNNER.MODEL_EVIDENCE_ROOT)

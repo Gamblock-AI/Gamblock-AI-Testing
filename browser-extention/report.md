@@ -11,11 +11,11 @@ This report covers the passive browser extension component checks.
 
 | Check | Status |
 |---|---|
-| extension_unit | pending |
+| extension_unit | passed |
 
 ## Interpretation limits
 
-Offline replay is not physical browser, Android, or Windows runtime proof.
+Offline evaluation is not physical browser, Android, or Windows runtime proof.
 A missing matrix cell remains pending. This report contains aggregate-safe
 results and validated scenario detail where applicable; source code and
 component unit tests remain in their owners.

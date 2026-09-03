@@ -25,6 +25,24 @@ REPORT_PATHS = {
     "browser-extention": Path("browser-extention/report.md"),
     "model": Path("model/report.md"),
 }
+COMPONENT_REPORT_KEYS = {
+    "flutter": "flutter",
+    "backend": "golang",
+    "website": "next",
+    "browser_extension": "browser-extention",
+    "model": "model",
+}
+COMPONENT_CHECK_NAMES = {
+    "flutter": {
+        "testing_flutter_unit",
+        "client_python_contract_unit",
+        "flutter_pattern_interrupt_unit",
+    },
+    "backend": {"backend_unit"},
+    "website": {"website_unit"},
+    "browser_extension": {"extension_unit"},
+    "model": {"model_tooling_unit"},
+}
 DEVICE_REGISTER_PATH = TESTING_ROOT / "flutter/config/device-register.json"
 MODEL_EVIDENCE_ROOT = TESTING_ROOT / "model/evidence"
 MODEL_AGGREGATE_ROOT = MODEL_EVIDENCE_ROOT / "aggregate"
@@ -256,8 +274,28 @@ def run_model_tests(workspace_root: Path) -> dict[str, Any]:
     )
 
 
-def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[str, Any]]:
+def check_names_for_components(components: list[str] | None) -> set[str] | None:
+    if components is None:
+        return None
+    names: set[str] = set()
+    for component in components:
+        names.update(COMPONENT_CHECK_NAMES[component])
+    return names
+
+
+def report_keys_for_components(components: list[str] | None) -> set[str]:
+    if components is None:
+        return set(REPORT_PATHS)
+    return {COMPONENT_REPORT_KEYS[component] for component in components}
+
+
+def run_code_checks(
+    workspace_root: Path,
+    include_flutter: bool,
+    components: list[str] | None = None,
+) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
+    selected_names = check_names_for_components(components)
     commands = [
         ("model_tooling_unit", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], workspace_root / "gamblock-ai-model"),
         ("testing_flutter_unit", [sys.executable, "-m", "unittest", "discover", "-s", "flutter/tests", "-p", "test_*.py"], TESTING_ROOT),
@@ -267,19 +305,22 @@ def run_code_checks(workspace_root: Path, include_flutter: bool) -> list[dict[st
         ("backend_unit", ["go", "test", "./internal/service", "-run", "Test(ProtectionGrantSigner_SignsDeviceBoundES256Grant|Accountability_CreateApprovalRequestAndResolve|Admin_EmergencyKeyGenerateAndValidate|ReflectionService)"], workspace_root / "gamblock-ai-backend"),
         ("client_python_contract_unit", [sys.executable, "-m", "unittest", "discover", "-s", "test/scripts", "-p", "*test.py"], workspace_root / "gamblock_ai_apps"),
     ]
-    if include_flutter:
+    if include_flutter and (selected_names is None or "flutter_pattern_interrupt_unit" in selected_names):
         commands.append(("flutter_pattern_interrupt_unit", ["flutter", "test", "test/features/pattern_interrupt/pattern_interrupt_screen_test.dart"], workspace_root / "gamblock_ai_apps"))
-    else:
+    elif selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
         results = [pending("flutter_pattern_interrupt_unit", "Use --include-flutter explicitly on a writable Flutter SDK installation.")]
     for name, command, cwd in commands:
+        if selected_names is not None and name not in selected_names:
+            continue
         if not cwd.is_dir():
             results.append(pending(name, "Required component checkout is unavailable."))
         else:
             results.append(run_command(name, command, cwd, workspace_root))
-    results.extend([
-        pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."),
-        pending("windows_service_runtime", "Requires an approved Windows VM/device run."),
-    ])
+    if selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
+        results.extend([
+            pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."),
+            pending("windows_service_runtime", "Requires an approved Windows VM/device run."),
+        ])
     return results
 
 
@@ -715,8 +756,17 @@ def main() -> int:
     parser.add_argument("--run-model-replay", action="store_true")
     parser.add_argument("--run-model-tests", action="store_true")
     parser.add_argument("--run-code-tests", action="store_true")
+    parser.add_argument(
+        "--component",
+        action="append",
+        choices=sorted(COMPONENT_REPORT_KEYS),
+        help="Limit --run-code-tests and report generation to the selected component(s).",
+    )
     parser.add_argument("--include-flutter", action="store_true")
     args = parser.parse_args()
+
+    if args.component and not (args.run_code_tests or args.run_model_tests):
+        parser.error("--component requires --run-code-tests or --run-model-tests")
 
     workspace_root = args.workspace_root.resolve()
     android_records, android_errors, android_ledger_exists = read_android_evidence()
@@ -730,7 +780,7 @@ def main() -> int:
     else:
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
-    checks = run_code_checks(workspace_root, args.include_flutter) if args.run_code_tests else [
+    checks = run_code_checks(workspace_root, args.include_flutter, args.component) if args.run_code_tests else [
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
     model_checks = [check for check in checks if check.get("name") == "model_tooling_unit"]
@@ -738,13 +788,18 @@ def main() -> int:
         model_checks = [run_model_tests(workspace_root)]
     elif not model_checks:
         model_checks = [pending("model_tooling_unit", "Not requested; use --run-model-tests explicitly.")]
-    reports = {
-        "flutter": render_flutter_report(android, latency, checks, android_records, device_register),
-        "golang": render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit"),
-        "next": render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit"),
-        "browser-extention": render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit"),
-        "model": render_model_report(projection, grouped, model_checks),
-    }
+    selected_reports = report_keys_for_components(args.component)
+    reports: dict[str, str] = {}
+    if "flutter" in selected_reports:
+        reports["flutter"] = render_flutter_report(android, latency, checks, android_records, device_register)
+    if "golang" in selected_reports:
+        reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit")
+    if "next" in selected_reports:
+        reports["next"] = render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit")
+    if "browser-extention" in selected_reports:
+        reports["browser-extention"] = render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit")
+    if "model" in selected_reports:
+        reports["model"] = render_model_report(projection, grouped, model_checks)
     outputs: dict[str, str] = {}
     for technology, content in reports.items():
         output = args.output_dir / REPORT_PATHS[technology]
