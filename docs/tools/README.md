@@ -16,7 +16,7 @@ python3 -m unittest discover -s docs/tools/tests -p 'test_*.py'
 
 The runner writes the single canonical human-readable result to
 `<technology>/report.md`; `docs/testing-index.md` only links to those reports.
-For model replay, it also writes the permanent aggregate JSON evidence to
+For model evaluation, it also writes the permanent aggregate JSON evidence to
 `model/evidence/aggregate/` and the allowlisted aggregate-generated charts to
 `model/evidence/visuals/`. Sensitive model inputs remain in ignored
 `model/private/` and are never copied into public evidence.

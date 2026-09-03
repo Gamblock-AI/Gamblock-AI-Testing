@@ -43,12 +43,10 @@ SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 LABEL_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 URL_PATTERN = re.compile(r"https?://", re.IGNORECASE)
 MODEL_PUBLIC_AGGREGATES = {
-    Path("model/evidence/aggregate/historical_model_evidence.json"),
     Path("model/evidence/aggregate/deployment_projection_evidence.json"),
     Path("model/evidence/aggregate/domain_grouped_evidence.json"),
 }
 MODEL_PUBLIC_VISUALS = {
-    Path("model/evidence/visuals/historical_confusion_matrix.png"),
     Path("model/evidence/visuals/domain_grouped_confusion_matrix.png"),
     Path("model/evidence/visuals/domain_grouped_ablation_metrics.png"),
     Path("model/evidence/visuals/domain_grouped_threshold_sensitivity.png"),
@@ -207,6 +205,8 @@ def main() -> int:
     errors: list[str] = []
     files = public_files()
     for path in files:
+        if not path.exists():
+            continue
         relative = path.relative_to(ROOT)
         allowed_model_visual = relative in MODEL_PUBLIC_VISUALS
         if path.suffix.lower() in RAW_SUFFIXES and "private" not in path.parts and not allowed_model_visual:

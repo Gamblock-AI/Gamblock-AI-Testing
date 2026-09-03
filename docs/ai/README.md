@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-03.1`
+Context version: `2026-09-03.2`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -9,7 +9,7 @@ orchestration and public evidence. It does not own product runtime code.
 
 | Area | State | Evidence boundary |
 |---|---|---|
-| Model and runtime replay | Implemented tooling | Historical replay, deployment projection, domain-grouped robustness/evaluation evidence, and four aggregate visual artifacts; offline/projection evidence only, not physical browser, Android, or Windows proof. |
+| Model evaluation | Implemented tooling | Deployment projection, domain-grouped robustness/evaluation evidence, and four aggregate visual artifacts; offline/projection evidence only, not physical browser, Android, or Windows proof. |
 | Model evidence storage | Implemented | Permanent aggregate JSON is stored under `model/evidence/aggregate/` and allowlisted aggregate-generated charts under `model/evidence/visuals/`; raw replay inputs remain in ignored `model/private/`. |
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and the configured p95/sample gate. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. Valid evidence and the retest queue are rendered separately. |
@@ -32,7 +32,7 @@ The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, and `browser-extention/` describe or contain system-specific checks;
 `docs/tools/` is the only place that combines their aggregate statuses. It
 writes each technology report directly and does not write a global summary.
-For model replay, the same runner also writes permanent aggregate evidence
+For model evaluation, the same runner also writes permanent aggregate evidence
 and approved charts only to `model/evidence/`; it never writes retained
 model results back into the model source repository.
 

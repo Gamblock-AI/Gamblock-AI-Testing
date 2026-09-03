@@ -5,13 +5,7 @@ generated from validated public evidence and aggregate command results.
 Raw URL, domain, DOM, browsing history, screenshot, serial, credential,
 participant, and raw log data are never included.
 
-This report covers offline model replay, runtime projection, and text-and-domain grouped candidate evaluation only.
-
-## Model replay
-
-| Status | Evidence maturity | Test rows | Numeric gate | Audit |
-|---|---|---:|---|---|
-| passed | provisional | 2592 | True | False |
+This report covers offline deployment projection and text-and-domain grouped candidate evaluation only.
 
 ## Runtime projection
 
@@ -111,22 +105,16 @@ Scope: offline prediction on the evaluation host; browser, UI, and device latenc
 ## Scope exclusions
 
 - runtime_device_evaluation: out_of_scope for this model progress report
-- time_shifted_evaluation: out_of_scope for this model progress report
 
 ## Text-and-domain grouped slices
 
 | Slice | Samples | Status | Accuracy | Precision | Recall | F1 | FPR |
 |---|---:|---|---:|---:|---:|---:|---:|
-| dom_text_length_high | 682 | failed | 0.969208211143695 | 0.8969072164948454 | 0.8877551020408163 | 0.8923076923076922 | 0.017123287671232876 |
-| dom_text_length_low | 594 | failed | 0.9511784511784511 | 0.9401993355481728 | 0.9625850340136054 | 0.9512605042016807 | 0.06 |
 | url_digit_count_high | 2523 | passed | 0.9659135949266746 | 0.9422336328626444 | 0.9470967741935484 | 0.9446589446589446 | 0.02574370709382151 |
 | url_digit_count_low | 2133 | passed | 0.9732770745428974 | 0.9485815602836879 | 0.9502664298401421 | 0.9494232475598935 | 0.018471337579617834 |
-| url_length_high | 617 | failed | 0.9594813614262561 | 0.8971428571428571 | 0.9573170731707317 | 0.9262536873156343 | 0.039735099337748346 |
-| url_length_low | 664 | passed | 0.9728915662650602 | 0.9398496240601504 | 0.9259259259259259 | 0.9328358208955223 | 0.015122873345935728 |
 
 ## Text-and-domain grouped limitations
 
-- government_education_domain_churn: pending: no authoritative slice labels in local data
 - repeated_grouped_cv: fixed-candidate stability evaluation; not a nested estimate of hyperparameter-selection generalization
 ## Component checks
 
@@ -136,7 +124,7 @@ Scope: offline prediction on the evaluation host; browser, UI, and device latenc
 
 ## Interpretation limits
 
-Offline replay is not physical browser, Android, or Windows runtime proof.
+Offline evaluation is not physical browser, Android, or Windows runtime proof.
 A missing matrix cell remains pending. This report contains aggregate-safe
 results and validated scenario detail where applicable; source code and
 component unit tests remain in their owners.

@@ -1211,90 +1211,6 @@
       "total_evaluations": 15
     },
     "slices": {
-      "dom_text_length_high": {
-        "boundaries": {
-          "q25": 507.5,
-          "q75": 1150.0
-        },
-        "metrics": {
-          "accuracy": 0.969208211143695,
-          "confusion_matrix": {
-            "fn": 11,
-            "fp": 10,
-            "tn": 574,
-            "tp": 87
-          },
-          "f1_score": 0.8923076923076922,
-          "false_positive_rate": 0.017123287671232876,
-          "false_positive_rate_ci95_wilson": [
-            0.009327127416045373,
-            0.031230506726541266
-          ],
-          "numeric_gate_passed": false,
-          "precision": 0.8969072164948454,
-          "precision_ci95_wilson": [
-            0.8205423256074809,
-            0.9430325066141896
-          ],
-          "recall": 0.8877551020408163,
-          "recall_ci95_wilson": [
-            0.8101006663032684,
-            0.9361573005411425
-          ],
-          "samples": 682,
-          "status": "failed",
-          "target_checks": {
-            "accuracy": true,
-            "f1_score": false,
-            "false_positive_rate": true,
-            "precision": false,
-            "recall": false
-          }
-        },
-        "samples": 682
-      },
-      "dom_text_length_low": {
-        "boundaries": {
-          "q25": 507.5,
-          "q75": 1150.0
-        },
-        "metrics": {
-          "accuracy": 0.9511784511784511,
-          "confusion_matrix": {
-            "fn": 11,
-            "fp": 18,
-            "tn": 282,
-            "tp": 283
-          },
-          "f1_score": 0.9512605042016807,
-          "false_positive_rate": 0.06,
-          "false_positive_rate_ci95_wilson": [
-            0.038286369524692054,
-            0.09283944515290843
-          ],
-          "numeric_gate_passed": false,
-          "precision": 0.9401993355481728,
-          "precision_ci95_wilson": [
-            0.9074623771107596,
-            0.9618419525075795
-          ],
-          "recall": 0.9625850340136054,
-          "recall_ci95_wilson": [
-            0.9342557006673093,
-            0.9789818354265118
-          ],
-          "samples": 594,
-          "status": "failed",
-          "target_checks": {
-            "accuracy": true,
-            "f1_score": true,
-            "false_positive_rate": false,
-            "precision": true,
-            "recall": true
-          }
-        },
-        "samples": 594
-      },
       "url_digit_count_high": {
         "boundaries": {
           "q25": 0.0,
@@ -1378,90 +1294,6 @@
           }
         },
         "samples": 2133
-      },
-      "url_length_high": {
-        "boundaries": {
-          "q25": 22.0,
-          "q75": 35.0
-        },
-        "metrics": {
-          "accuracy": 0.9594813614262561,
-          "confusion_matrix": {
-            "fn": 7,
-            "fp": 18,
-            "tn": 435,
-            "tp": 157
-          },
-          "f1_score": 0.9262536873156343,
-          "false_positive_rate": 0.039735099337748346,
-          "false_positive_rate_ci95_wilson": [
-            0.025279833826309703,
-            0.06193085612188855
-          ],
-          "numeric_gate_passed": false,
-          "precision": 0.8971428571428571,
-          "precision_ci95_wilson": [
-            0.84328176039937,
-            0.9339429441886246
-          ],
-          "recall": 0.9573170731707317,
-          "recall_ci95_wilson": [
-            0.9145275253974305,
-            0.9791730004079708
-          ],
-          "samples": 617,
-          "status": "failed",
-          "target_checks": {
-            "accuracy": true,
-            "f1_score": true,
-            "false_positive_rate": true,
-            "precision": false,
-            "recall": true
-          }
-        },
-        "samples": 617
-      },
-      "url_length_low": {
-        "boundaries": {
-          "q25": 22.0,
-          "q75": 35.0
-        },
-        "metrics": {
-          "accuracy": 0.9728915662650602,
-          "confusion_matrix": {
-            "fn": 10,
-            "fp": 8,
-            "tn": 521,
-            "tp": 125
-          },
-          "f1_score": 0.9328358208955223,
-          "false_positive_rate": 0.015122873345935728,
-          "false_positive_rate_ci95_wilson": [
-            0.007682475277973255,
-            0.029554602453568182
-          ],
-          "numeric_gate_passed": true,
-          "precision": 0.9398496240601504,
-          "precision_ci95_wilson": [
-            0.885795220972421,
-            0.9692088180688992
-          ],
-          "recall": 0.9259259259259259,
-          "recall_ci95_wilson": [
-            0.8690133972817375,
-            0.9592694584070376
-          ],
-          "samples": 664,
-          "status": "passed",
-          "target_checks": {
-            "accuracy": true,
-            "f1_score": true,
-            "false_positive_rate": true,
-            "precision": true,
-            "recall": true
-          }
-        },
-        "samples": 664
       }
     },
     "threshold_sensitivity": {
@@ -1725,7 +1557,6 @@
     }
   },
   "limitations": {
-    "government_education_domain_churn": "pending: no authoritative slice labels in local data",
     "repeated_grouped_cv": "fixed-candidate stability evaluation; not a nested estimate of hyperparameter-selection generalization"
   },
   "parity": {
@@ -1757,8 +1588,7 @@
   "report_kind": "text_and_domain_grouped_deployment_aligned_model_evidence",
   "schema_version": 3,
   "scope_exclusions": {
-    "runtime_device_evaluation": "out_of_scope for this model progress report",
-    "time_shifted_evaluation": "out_of_scope for this model progress report"
+    "runtime_device_evaluation": "out_of_scope for this model progress report"
   },
   "source": {
     "dataset_reference": "local dataset card; source URL withheld from public evidence",
@@ -1811,10 +1641,6 @@
     },
     "seed_inner": 43,
     "seed_outer": 42,
-    "time_shifted_set": {
-      "reason": "excluded from the current model progress evaluation",
-      "status": "out_of_scope"
-    },
     "train_rows": 8111,
     "validation_rows": 2032
   },

@@ -30,7 +30,6 @@ MODEL_EVIDENCE_ROOT = TESTING_ROOT / "model/evidence"
 MODEL_AGGREGATE_ROOT = MODEL_EVIDENCE_ROOT / "aggregate"
 MODEL_VISUAL_ROOT = MODEL_EVIDENCE_ROOT / "visuals"
 MODEL_PRIVATE_ROOT = TESTING_ROOT / "model/private"
-MODEL_REPLAY_INPUT_ROOT = MODEL_PRIVATE_ROOT / "replay_input"
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -165,32 +164,18 @@ def read_latency_summary() -> dict[str, Any]:
     }
 
 
-def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     model_root = workspace_root / "gamblock-ai-model"
     if not model_root.is_dir():
         reason = "Model repository is not available."
-        return pending("model_evidence", reason), pending("runtime_projection", reason), pending("domain_grouped_model", reason)
+        return pending("runtime_projection", reason), pending("domain_grouped_model", reason)
     MODEL_AGGREGATE_ROOT.mkdir(parents=True, exist_ok=True)
     MODEL_VISUAL_ROOT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="gamblock-testing-") as temporary:
         directory = Path(temporary)
-        model_output = MODEL_AGGREGATE_ROOT / "historical_model_evidence.json"
         projection_output = MODEL_AGGREGATE_ROOT / "deployment_projection_evidence.json"
         grouped_output = MODEL_AGGREGATE_ROOT / "domain_grouped_evidence.json"
         grouped_onnx = directory / "domain-grouped-candidate.onnx"
-        model_result = run_command(
-            "model_evidence",
-            [
-                sys.executable,
-                "scripts/evaluate_model_evidence.py",
-                "--output",
-                str(model_output),
-                "--prediction-input",
-                str(MODEL_REPLAY_INPUT_ROOT / "predictions.csv"),
-            ],
-            model_root,
-            workspace_root,
-        )
         projection_result = run_command(
             "runtime_projection",
             [
@@ -222,15 +207,6 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             workspace_root,
             timeout=1800,
         )
-        if model_result.get("status") == "passed" and model_output.exists():
-            model = json.loads(model_output.read_text(encoding="utf-8"))
-            metrics = model.get("evaluation", {}).get("all_test_rows", {})
-            model_result["aggregate"] = {
-                "evidence_maturity": model.get("evidence_maturity"),
-                "dataset_rows": model.get("dataset", {}).get("test", {}).get("rows"),
-                "numeric_gate_passed": metrics.get("numeric_gate_passed"),
-                "audit_passed": model.get("audit", {}).get("passed"),
-            }
         if projection_result.get("status") == "passed" and projection_output.exists():
             projection = json.loads(projection_output.read_text(encoding="utf-8"))
             metrics = projection.get("evaluation", {}).get("deployed_hybrid", {})
@@ -264,7 +240,7 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
                 "scope_exclusions": grouped.get("scope_exclusions", {}),
                 "limitations": grouped.get("limitations", {}),
             }
-        return model_result, projection_result, grouped_result
+        return projection_result, grouped_result
 
 
 def run_model_tests(workspace_root: Path) -> dict[str, Any]:
@@ -346,7 +322,7 @@ def render_report(title: str, description: str, sections: list[str]) -> str:
         "",
         "## Interpretation limits",
         "",
-        "Offline replay is not physical browser, Android, or Windows runtime proof.",
+        "Offline evaluation is not physical browser, Android, or Windows runtime proof.",
         "A missing matrix cell remains pending. This report contains aggregate-safe",
         "results and validated scenario detail where applicable; source code and",
         "component unit tests remain in their owners.",
@@ -511,7 +487,6 @@ def render_component_report(title: str, description: str, checks: list[dict[str,
 
 
 def render_model_report(
-    model: dict[str, Any],
     projection: dict[str, Any],
     grouped: dict[str, Any],
     checks: list[dict[str, Any]],
@@ -530,12 +505,6 @@ def render_model_report(
     scope_exclusions = grouped_aggregate.get("scope_exclusions", {})
     limitations = grouped_aggregate.get("limitations", {})
     sections = [
-        "## Model replay",
-        "",
-        "| Status | Evidence maturity | Test rows | Numeric gate | Audit |",
-        "|---|---|---:|---|---|",
-        f"| {model.get('status', 'pending')} | {model.get('aggregate', {}).get('evidence_maturity', 'not generated')} | {model.get('aggregate', {}).get('dataset_rows', 'not generated')} | {model.get('aggregate', {}).get('numeric_gate_passed', 'not generated')} | {model.get('aggregate', {}).get('audit_passed', 'not generated')} |",
-        "",
         "## Runtime projection",
         "",
         "| Status | Accuracy | Precision | Recall | F1 | False-positive rate |",
@@ -734,7 +703,7 @@ def render_model_report(
     sections.extend(render_check_section(checks, {"model_tooling_unit"}, "model_tooling_unit"))
     return render_report(
         "Gamblock-AI Model Report",
-        "This report covers offline model replay, runtime projection, and text-and-domain grouped candidate evaluation only.",
+        "This report covers offline deployment projection and text-and-domain grouped candidate evaluation only.",
         sections,
     )
 
@@ -757,9 +726,8 @@ def main() -> int:
     latency = read_latency_summary()
     device_register = read_device_register()
     if args.run_model_replay:
-        model, projection, grouped = run_model_replay(workspace_root)
+        projection, grouped = run_model_replay(workspace_root)
     else:
-        model = pending("model_evidence", "Not requested; use --run-model-replay explicitly.")
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
     checks = run_code_checks(workspace_root, args.include_flutter) if args.run_code_tests else [
@@ -775,7 +743,7 @@ def main() -> int:
         "golang": render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, {"backend_unit"}, "backend_unit"),
         "next": render_component_report("Gamblock-AI Next.js Report", "This report covers the Next.js website component checks.", checks, {"website_unit"}, "website_unit"),
         "browser-extention": render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit"),
-        "model": render_model_report(model, projection, grouped, model_checks),
+        "model": render_model_report(projection, grouped, model_checks),
     }
     outputs: dict[str, str] = {}
     for technology, content in reports.items():

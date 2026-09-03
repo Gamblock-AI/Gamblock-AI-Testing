@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-03.1`
+Context version: `2026-09-03.2`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their

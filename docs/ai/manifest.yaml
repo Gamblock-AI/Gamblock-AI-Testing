@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-03.1"
+context_version: "2026-09-03.2"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -73,10 +73,8 @@ required_context:
   - browser-extention/report.md
   - model/README.md
   - model/report.md
-  - model/evidence/aggregate/historical_model_evidence.json
   - model/evidence/aggregate/deployment_projection_evidence.json
   - model/evidence/aggregate/domain_grouped_evidence.json
-  - model/evidence/visuals/historical_confusion_matrix.png
   - model/evidence/visuals/domain_grouped_confusion_matrix.png
   - model/evidence/visuals/domain_grouped_ablation_metrics.png
   - model/evidence/visuals/domain_grouped_threshold_sensitivity.png

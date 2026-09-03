@@ -81,7 +81,6 @@ class RunEvaluationReportTest(unittest.TestCase):
 
     def test_model_report_renders_grouped_aggregate_sections(self):
         report = RUNNER.render_model_report(
-            {"status": "passed", "aggregate": {"evidence_maturity": "provisional"}},
             {"status": "passed", "aggregate": {"accuracy": 0.9}},
             {
                 "status": "passed",
@@ -98,20 +97,19 @@ class RunEvaluationReportTest(unittest.TestCase):
                     "onnx_parity": "failed",
                     "ablations": {"rule_only": {"samples": 10, "status": "failed"}},
                     "slices": {"invalid_url": {"samples": 0, "metrics": {"status": "pending"}}},
-                    "limitations": {"time_shifted_evaluation": "pending"},
                 },
             },
             [{"name": "model_tooling_unit", "status": "passed"}],
         )
+        self.assertNotIn("## Model replay", report)
         self.assertIn("## Text-and-domain grouped candidate", report)
         self.assertIn("## Text-and-domain grouped ablations", report)
         self.assertIn("rule_only", report)
-        self.assertIn("time_shifted_evaluation", report)
+        self.assertNotIn("time_shift", report)
         self.assertNotIn("https://", report)
 
     def test_model_report_renders_new_aggregate_evaluations(self):
         report = RUNNER.render_model_report(
-            {"status": "passed"},
             {"status": "passed"},
             {
                 "status": "passed",
@@ -135,7 +133,7 @@ class RunEvaluationReportTest(unittest.TestCase):
                         "status": "created",
                         "files": {"confusion_matrix": {"bytes": 10, "sha256": "hash"}},
                     },
-                    "scope_exclusions": {"time_shifted_evaluation": "out_of_scope"},
+                    "scope_exclusions": {"runtime_device_evaluation": "out_of_scope"},
                 },
             },
             [],

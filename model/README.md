@@ -4,7 +4,7 @@ This folder documents the testing-repository boundary for model evaluation.
 Model source, datasets, fixtures, and production evaluation tests remain in
 `../gamblock-ai-model/` in the umbrella workspace; they are not copied here.
 
-Model replay and the runtime projection are started by the cross-system runner:
+Model evaluation and the runtime projection are started by the cross-system runner:
 
 ```sh
 python3 docs/tools/run_evaluation.py --workspace-root .. --run-model-replay
@@ -16,8 +16,8 @@ Add the model repository unit tests to the same receipt when requested:
 python3 docs/tools/run_evaluation.py --workspace-root .. --run-model-replay --run-model-tests
 ```
 
-The replay includes the historical evidence snapshot, runtime projection, and
-a separate text-and-registrable-domain-grouped deployment candidate. The resulting
+The evaluation includes the runtime projection and a separate
+text-and-registrable-domain-grouped deployment candidate. The resulting
 summary contains aggregate metrics, slices, ablations, camouflage robustness,
 short-DOM robustness,
 threshold sensitivity, calibration, repeated grouped validation,
