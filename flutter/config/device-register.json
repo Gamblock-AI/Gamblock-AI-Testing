@@ -22,8 +22,8 @@
       "service": "local_physical_device",
       "access_path": "local_adb",
       "evidence_status": "pending_retest",
-      "android_api": null,
-      "build_mode": null,
+      "android_api": 34,
+      "build_mode": "release",
       "retest_required": true
     }
   ]

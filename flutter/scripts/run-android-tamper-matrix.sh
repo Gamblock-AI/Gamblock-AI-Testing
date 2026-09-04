@@ -167,7 +167,7 @@ required = {
     "flavor", "build_mode", "admin_active_before",
     "accessibility_enabled_before", "service_running_before", "app_present_before",
 }
-if state.get("schema_version") != 1 or state.get("flavor") != "research" or not required <= state.keys():
+if state.get("schema_version") != 2 or state.get("flavor") != "research" or not required <= state.keys():
     raise SystemExit("state file is not a valid Research baseline")
 PY
 }

@@ -39,13 +39,14 @@ Current interpretation:
 - Google Pixel 9 Pro Remote is the only device with valid **anti-uninstall**
   evidence. Its seven scenario records and observed outcomes are detailed in
   `flutter/report.md`.
-- Redmi 12C (`redmi_12c_local_01`) now has a validated Phase 4 latency run for
-  the Research release in the per-device
-  `flutter/evidence/ledger/<device_alias>/phase4-latency.jsonl` ledger and is
-  documented in `flutter/report.md`. This proves only the Android/Chrome/release latency
-  group and the user-visible Pattern Interrupt demonstration. The device is
-  still in the anti-uninstall retest queue because no complete Android
-  tamper-scenario ledger has been promoted for it.
+- Redmi 12C (`redmi_12c_local_01`) now has a validated Phase 4 latency run and
+  a partial Android Research release anti-uninstall ledger. Launcher and
+  Package Installer uninstall attempts were blocked, Accessibility disable was
+  recorded as the expected degraded state, and the Settings uninstall attempt
+  removed the package after MIUI deactivated Device Admin (`removal_not_blocked`).
+  The failure is retained as evidence; it is not converted into a pass. The
+  device therefore remains in the anti-uninstall retest queue until the full
+  matrix (including lifecycle and grant scenarios) is complete.
 - Samsung Galaxy A14 had a device-reservation attempt that did not complete.
   It is an operational setup note only, not a test result.
 - Samsung, Xiaomi/Redmi, OPPO/Realme, and Vivo coverage remains incomplete
