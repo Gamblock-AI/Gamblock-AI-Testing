@@ -11,7 +11,7 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 | Status | Samples | Groups | OEM families | Scenarios | Coverage complete |
 |---|---:|---:|---:|---:|---|
-| failed | 17 | 17 | 2 | 10 | False |
+| failed | 18 | 17 | 2 | 10 | False |
 
 ## Phase 4 latency
 
@@ -48,6 +48,7 @@ blocked uninstall assertion.
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_process_kill_01 | xiaomi_redmi | 34 | release | local_physical_device | process_kill | none | process_kill / none | recovered → recovered | none | true → true | true → true | true → true | true | 3.0 | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_reboot_01 | xiaomi_redmi | 34 | release | local_physical_device | reboot | none | reboot / none | recovered → recovered | none | true → true | true → true | true → true | true | 53.0 | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_settings_uninstall_01 | xiaomi_redmi | 34 | release | local_physical_device | settings_uninstall | settings | uninstall / uninstall | blocked → failed | none | true → false | true → false | true → false | false | — | failed |
+| Redmi 12C | tamper_redmi12c_release_20260905_fix / redmi_settings_uninstall_fix_01 | xiaomi_redmi | 34 | release | local_physical_device | settings_uninstall | settings | uninstall / uninstall | blocked → failed | none | true → false | true → false | true → false | false | — | failed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_setup_01 | xiaomi_redmi | 34 | release | local_physical_device | setup | none | none / none | no_tamper → no_tamper | none | true → true | true → true | true → true | true | — | passed |
 
 
