@@ -54,6 +54,26 @@ Current interpretation:
 - Samsung, Xiaomi/Redmi, OPPO/Realme, and Vivo coverage remains incomplete
   until validated device/scenario records exist.
 
+## Scope limitation: standard Android Research APK
+
+Anti-uninstall in the Research APK is deliberately best-effort within the
+authority Android grants to an ordinary application. Device Administrator
+prevents removal while it is active, but an Android/OEM Settings flow may ask
+the user to deactivate the administrator and then continue to the package
+installer. `DeviceAdminReceiver.onDisableRequested` can display a warning and
+record the attempt, but it cannot reject the OS-level deactivation. The
+Accessibility service can detect labels and request Back/Home, yet it cannot
+override Settings or the package installer, and an OEM can stop the protection
+process during this transition.
+
+The Redmi 12C release evidence is an explicit example: the Settings flow
+reached “Nonaktifkan & uninstal” and the package was removed after confirmation.
+The failed result is retained as evidence. The prototype therefore claims
+detection, warning, audit, recovery, and approved-grant removal—not guaranteed
+uninstall prevention across all OEMs. Device Owner/MDM/kiosk provisioning would
+be a separate managed-device scope and is not part of the current APK test
+contract.
+
 ## Firebase Test Lab service context
 
 The remote Pixel session uses **Firebase Test Lab — Android Device Streaming**
