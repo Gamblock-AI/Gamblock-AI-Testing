@@ -27,6 +27,7 @@ TESTING_ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE_ROOT = TESTING_ROOT.parent
 MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
 APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"
+TARGETS_PATH = TESTING_ROOT / "docs/config/targets.json"
 
 
 def configure_workspace(workspace_root: Path) -> None:
@@ -46,6 +47,67 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def configured_detection_gates() -> dict[str, dict[str, float]]:
+    value = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
+    detection = value["detection"]
+    return {
+        name: {key: float(threshold) for key, threshold in thresholds.items()}
+        for name, thresholds in detection.items()
+    }
+
+
+def evaluate_gates(metrics: dict[str, float]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for name, thresholds in configured_detection_gates().items():
+        checks = {
+            "accuracy": metrics["accuracy"] >= thresholds["accuracy_min"],
+            "precision": metrics["precision"] >= thresholds["precision_min"],
+            "recall": metrics["recall"] >= thresholds["recall_min"],
+            "f1_score": metrics["f1_score"] >= thresholds["f1_score_min"],
+            "false_positive_rate": metrics["false_positive_rate"] <= thresholds["false_positive_rate_max"],
+        }
+        result[name] = {
+            "criteria": thresholds,
+            "checks": checks,
+            "passed": all(checks.values()),
+        }
+    return result
+
+
+def artifact_contract(model_path: Path, rules_path: Path, model: dict[str, Any]) -> dict[str, Any]:
+    """Describe the actual serialized Hybrid artifacts used by this evaluator.
+
+    This is an artifact-integrity check, not a physical Android/Windows runtime
+    observation. Runtime coverage remains a separate final-readiness gate.
+    """
+
+    targets = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))["hybrid_artifact"]
+    source_onnx = MODEL_ROOT / "models/gamblock_logistic_regression.onnx"
+    source_onnx_sha256 = sha256(source_onnx) if source_onnx.is_file() else None
+    declared_source_onnx_sha256 = model.get("source_onnx_sha256")
+    combined_bytes = model_path.stat().st_size + rules_path.stat().st_size
+    max_combined_bytes = int(targets["max_combined_bytes_exclusive"])
+    return {
+        "runtime_format": targets["runtime_format"],
+        "runtime_artifact_count": 2,
+        "model_bytes": model_path.stat().st_size,
+        "rules_bytes": rules_path.stat().st_size,
+        "combined_bytes": combined_bytes,
+        "max_combined_bytes_exclusive": max_combined_bytes,
+        "size_passed": combined_bytes < max_combined_bytes,
+        "declared_source_onnx_sha256": declared_source_onnx_sha256,
+        "source_onnx_sha256": source_onnx_sha256,
+        "source_onnx_present": source_onnx_sha256 is not None,
+        "source_onnx_matches_declared_hash": (
+            source_onnx_sha256 is not None and source_onnx_sha256 == declared_source_onnx_sha256
+        ),
+        "required_runtime_platforms": targets["required_platforms"],
+        "runtime_platform_coverage_observed": [],
+        "runtime_platform_coverage_complete": False,
+        "scope": "offline artifact integrity only; physical runtime coverage is not asserted",
+    }
 
 
 def truncate_utf8(value: str, maximum_bytes: int) -> str:
@@ -226,7 +288,7 @@ def metric_summary(actual: list[int], predicted: list[bool]) -> dict[str, Any]:
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1_score = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     false_positive_rate = fp / (fp + tn) if fp + tn else 0.0
-    return {
+    metrics = {
         "samples": len(actual),
         "confusion_matrix": {"tp": tp, "tn": tn, "fp": fp, "fn": fn},
         "accuracy": accuracy,
@@ -235,6 +297,8 @@ def metric_summary(actual: list[int], predicted: list[bool]) -> dict[str, Any]:
         "f1_score": f1_score,
         "false_positive_rate": false_positive_rate,
     }
+    metrics["gates"] = evaluate_gates(metrics)
+    return metrics
 
 
 def host(url: str) -> str:
@@ -321,6 +385,7 @@ def build_report(
             "rules_sha256": sha256(rules_path),
             "fixtures_sha256": sha256(fixtures_path),
         },
+        "artifact_contract": artifact_contract(model_path, rules_path, model),
         "fixture_contract": {
             "samples": len(fixtures),
             "passed": fixture_passed,

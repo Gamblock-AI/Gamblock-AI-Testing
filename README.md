@@ -13,7 +13,8 @@ repositories link here instead of copying test results.
 
 | Path | Responsibility |
 |---|---|
-| `docs/config/targets.json` | Shared detection and latency targets |
+| `docs/config/targets.json` | Active v5 machine-readable detection/artifact/latency gates |
+| `../context/progress-targets.md` | Versioned target registry; proposed v6 targets do not affect the v5 runner |
 | `docs/testing-index.md` | Link-only index of canonical reports |
 | `docs/tools/` | Cross-system runner, validators, and tooling tests |
 | `flutter/` | Flutter/Android anti-uninstall and latency tooling/tests |
@@ -37,6 +38,11 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
 
+The report-version boundary and target lifecycle are maintained in the
+umbrella's [`context/progress-targets.md`](../context/progress-targets.md).
+Keep the v5 configuration active until a future report version explicitly
+activates its approved targets.
+
 For model evidence, use the explicit evaluation and unit-test flags:
 
 ```sh
@@ -51,8 +57,10 @@ threshold, leakage, repeated-validation, speed, and visual-artifact results.
 All permanent model outputs are stored below `model/evidence/`; raw prediction
 tables used as replay input remain only in the ignored `model/private/` staging
 area. The grouped candidate is not an automatic replacement for the active
-client artifact; device-runtime is an explicit exclusion of this model progress
-run.
+client artifact. The generated result distinguishes the 90%/5% developmental
+gate from the stricter 95%/2% PKM v5 acceptance gate, and records the active
+serialized Hybrid artifact's size/provenance contract. Device-runtime is an
+explicit exclusion of this model progress run.
 
 For every explicit test or evaluation, the agent must regenerate the matching
 technology report, inspect the resulting diff, run the validators, and provide
@@ -73,6 +81,15 @@ The runner does not reserve a Firebase device automatically. A Firebase or
 Android Studio session must be started manually after the matrix has been
 reviewed, and its local evidence must be promoted through the allowlist
 validator before publication.
+
+## Progress-report usability study
+
+The existing nine-student activity is retained as off-repository formative
+feedback, not a quantitative usability result. The planned controlled task and
+Indonesian SUS protocol is in
+[`docs/ai/pkm-usability-testing.md`](docs/ai/pkm-usability-testing.md); it
+requires governance confirmation before recruitment and permits no public raw
+participant material.
 
 ## Public evidence policy
 

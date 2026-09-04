@@ -23,14 +23,19 @@ short-DOM robustness,
 threshold sensitivity, calibration, repeated grouped validation,
 duplicate/leakage counts, split-manifest integrity, offline speed,
 split-audit status, ONNX parity, and
-the four visual artifact hashes. The PNGs are generated in the model
+the four visual artifact hashes. The PNGs are generated in the testing
 repository under `model/evidence/visuals/`. Aggregate JSON evidence is stored under
 `model/evidence/aggregate/`. Raw URLs, DOM text, history, row identifiers, predictions,
 and temporary candidate artifacts remain local in ignored `model/private/`.
 
-The current progress-evaluation checkpoint is accuracy, precision, recall, and
-F1-score >= 90%, with FPR <= 5%. It is a provisional reporting threshold and
-does not alter the PKM proposal or promote a candidate model.
+The evaluator reports two named gates: `developmental_checkpoint` (accuracy,
+precision, recall, and F1 >=90%; FPR <=5%) for candidate screening, and
+`pkm_progress_v5` (each of those metrics >=95%; FPR <=2%) for a leakage-safe
+result that may be represented as a v5 progress-report achievement. Neither
+gate alters the PKM proposal or promotes a candidate automatically. The runtime
+projection also checks the size and ONNX-hash provenance of the serialized
+Hybrid model/rules actually loaded by the client, while keeping physical
+Android/Windows runtime coverage separate.
 
 Repeated grouped validation evaluates the selected candidate with a fixed
 configuration and policy to measure stability. It is not a nested estimate of

@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-03.3`
+Context version: `2026-09-04.4`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -18,6 +18,11 @@ receipt is not a second report and is not committed by default.
 - Each technology's `<technology>/report.md` is its only human-readable
   canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
+- The umbrella `../context/progress-targets.md` is the versioned target
+  registry. `docs/config/targets.json` remains the active v5 machine
+  configuration; proposed future targets must not be copied into it early.
+- `docs/ai/pkm-usability-testing.md` defines the future structured task and
+  SUS protocol; it contains no participant results or raw study material.
 - Model replay is the exception to the runtime-ledger layout: its validated,
   aggregate-only evidence is stored under `model/evidence/aggregate/` and
   its allowlisted aggregate charts under `model/evidence/visuals/`.
@@ -73,6 +78,14 @@ repositories. This repository may invoke them and record only aggregate status,
 duration, and output hashes.
 
 ## Mandatory test handoff
+
+Requests to “cek”, “periksa”, “review”, “audit”, or summarize existing tests
+are read-only audits. Inspect source tests, runner configuration, existing
+reports/evidence, repository status, and runbooks without invoking tests,
+builds, packaging, model replay, device/VM procedures, or report regeneration.
+The status in an existing report is recorded status, not proof of a fresh run.
+Only an explicit request to run/execute/test/validate/re-evaluate or record new
+evidence authorizes execution, and the scope must not be broadened implicitly.
 
 For every explicit test, evaluation, or re-evaluation request:
 

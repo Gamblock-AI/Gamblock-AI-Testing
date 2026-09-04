@@ -176,24 +176,51 @@ def read_android_summary() -> dict[str, Any]:
 
 def read_latency_summary() -> dict[str, Any]:
     ledger = TESTING_ROOT / "flutter/evidence/ledger/phase4-latency.jsonl"
+    targets = json.loads((TESTING_ROOT / "docs/config/targets.json").read_text(encoding="utf-8"))
+    latency_targets = targets["latency"]
     if not ledger.exists():
-        return pending("phase4_latency", "No promoted Phase 4 latency ledger exists.")
+        reason = "No promoted Phase 4 latency ledger exists."
+        return {
+            "name": "phase4_latency",
+            "status": "pending",
+            "reason": reason,
+            "checkpoints": [
+                {"name": name, "status": "pending", "reason": reason}
+                for name in latency_targets
+            ],
+        }
     validator = load_module("phase4_latency_validator", TESTING_ROOT / "flutter/scripts/phase4_latency_report.py")
     records, errors = validator.load_records([ledger])
     if errors:
         return {"name": "phase4_latency", "status": "failed", "error_count": len(errors)}
-    targets = json.loads((TESTING_ROOT / "docs/config/targets.json").read_text(encoding="utf-8"))
-    latency_targets = targets["latency"]
-    aggregate = validator.report(
-        records,
-        minimum_samples=int(latency_targets["minimum_successful_samples_per_group"]),
-        target_ms=float(latency_targets["input_to_visible_ms_p95_exclusive"]),
-    )
+    checkpoints: list[dict[str, Any]] = []
+    for name, target in latency_targets.items():
+        aggregate = validator.report(
+            records,
+            minimum_samples=int(target["minimum_successful_samples_per_group"]),
+            target_ms=float(target["input_to_visible_ms_p95_exclusive"]),
+            required_platforms=tuple(target.get("required_platforms", [])),
+            required_product_flavors=tuple(target.get("required_product_flavors", [])),
+            required_browsers=tuple(target.get("required_browser_families", [])),
+            required_build_modes=tuple(target.get("required_build_modes", [])),
+            required_scenarios=tuple(target.get("required_scenarios", [])),
+            minimum_passing_groups=int(target.get("minimum_passing_groups", 1)),
+            require_all_scoped_groups=bool(target.get("require_all_scoped_groups", True)),
+        )
+        checkpoints.append({
+            "name": name,
+            "status": "passed" if aggregate["passed"] else "pending",
+            "scoped_record_count": aggregate["scoped_record_count"],
+            "group_count": len(aggregate["groups"]),
+            "passed_group_count": aggregate["passed_group_count"],
+            "coverage_complete": aggregate["coverage_complete"],
+            "missing_coverage_count": len(aggregate["missing_coverage"]),
+        })
+    progress = next(item for item in checkpoints if item["name"] == "pkm_progress_v5_demo")
     return {
         "name": "phase4_latency",
-        "status": "passed" if aggregate["passed"] else "pending",
-        "group_count": len(aggregate["groups"]),
-        "passed_group_count": sum(group["passed"] for group in aggregate["groups"]),
+        "status": progress["status"],
+        "checkpoints": checkpoints,
     }
 
 
@@ -246,6 +273,8 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             projection_result["aggregate"] = {
                 key: metrics.get(key) for key in ("accuracy", "precision", "recall", "f1_score", "false_positive_rate")
             }
+            projection_result["aggregate"]["gates"] = metrics.get("gates", {})
+            projection_result["aggregate"]["artifact_contract"] = projection.get("artifact_contract", {})
         if grouped_result.get("status") == "passed" and grouped_output.exists():
             grouped = json.loads(grouped_output.read_text(encoding="utf-8"))
             metrics = grouped.get("evaluation", {}).get("final_test", {})
@@ -257,6 +286,7 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
                 "recall": metrics.get("recall"),
                 "f1_score": metrics.get("f1_score"),
                 "false_positive_rate": metrics.get("false_positive_rate"),
+                "gates": metrics.get("gates", {}),
                 "numeric_gate_passed": metrics.get("numeric_gate_passed"),
                 "split_audit_passed": grouped.get("split", {}).get("audit_passed"),
                 "onnx_parity": grouped.get("parity", {}).get("status"),
@@ -480,6 +510,11 @@ def markdown_value(value: Any) -> str:
     return str(value).replace("|", "\\|")
 
 
+def named_gate_value(metrics: dict[str, Any], gate_name: str) -> Any:
+    gate = metrics.get("gates", {}).get(gate_name, {})
+    return gate.get("passed", "not generated") if isinstance(gate, dict) else "not generated"
+
+
 def transition(record: dict[str, Any], before: str, after: str) -> str:
     return f"{markdown_value(record.get(before))} → {markdown_value(record.get(after))}"
 
@@ -603,11 +638,23 @@ def render_flutter_report(
         "",
         "## Phase 4 latency",
         "",
-        "| Status | Groups | Passed groups |",
-        "|---|---:|---:|",
-        f"| {latency.get('status', 'pending')} | {latency.get('group_count', 0)} | {latency.get('passed_group_count', 0)} |",
+        "The progress-report status is the `pkm_progress_v5_demo` checkpoint. Final readiness remains a separate retained gate.",
         "",
+        "| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |",
+        "|---|---|---:|---:|---:|---|---:|",
     ]
+    checkpoints = latency.get("checkpoints", [])
+    if checkpoints:
+        for checkpoint in checkpoints:
+            sections.append(
+                f"| {checkpoint.get('name', 'unknown')} | {checkpoint.get('status', 'pending')} | "
+                f"{checkpoint.get('scoped_record_count', 0)} | {checkpoint.get('group_count', 0)} | "
+                f"{checkpoint.get('passed_group_count', 0)} | {checkpoint.get('coverage_complete', False)} | "
+                f"{checkpoint.get('missing_coverage_count', 0)} |"
+            )
+    else:
+        sections.append("| — | pending | 0 | 0 | 0 | False | 0 |")
+    sections.append("")
     sections.extend(render_android_evidence_details(android_records, device_register))
     sections.extend(["", ""])
     sections.extend(render_android_retest_queue(device_register))
@@ -683,6 +730,8 @@ def render_model_report(
     checks: list[dict[str, Any]],
 ) -> str:
     grouped_aggregate = grouped.get("aggregate", {})
+    projection_aggregate = projection.get("aggregate", {})
+    artifact_contract = projection_aggregate.get("artifact_contract", {})
     ablations = grouped_aggregate.get("ablations", {})
     slices = grouped_aggregate.get("slices", {})
     camouflage = grouped_aggregate.get("camouflage", {})
@@ -698,22 +747,28 @@ def render_model_report(
     sections = [
         "## Runtime projection",
         "",
-        "| Status | Accuracy | Precision | Recall | F1 | False-positive rate |",
-        "|---|---:|---:|---:|---:|---:|",
-        f"| {projection.get('status', 'pending')} | {projection.get('aggregate', {}).get('accuracy', 'not generated')} | {projection.get('aggregate', {}).get('precision', 'not generated')} | {projection.get('aggregate', {}).get('recall', 'not generated')} | {projection.get('aggregate', {}).get('f1_score', 'not generated')} | {projection.get('aggregate', {}).get('false_positive_rate', 'not generated')} |",
+        "| Status | Accuracy | Precision | Recall | F1 | False-positive rate | Developmental | PKM v5 |",
+        "|---|---:|---:|---:|---:|---:|---|---|",
+        f"| {projection.get('status', 'pending')} | {projection_aggregate.get('accuracy', 'not generated')} | {projection_aggregate.get('precision', 'not generated')} | {projection_aggregate.get('recall', 'not generated')} | {projection_aggregate.get('f1_score', 'not generated')} | {projection_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(projection_aggregate, 'developmental_checkpoint')} | {named_gate_value(projection_aggregate, 'pkm_progress_v5')} |",
+        "",
+        "## Active Hybrid artifact contract",
+        "",
+        "| Runtime format | Combined bytes | Size limit (exclusive) | Size passed | Provenance matched |",
+        "|---|---:|---:|---|---|",
+        f"| {artifact_contract.get('runtime_format', 'not generated')} | {artifact_contract.get('combined_bytes', 'not generated')} | {artifact_contract.get('max_combined_bytes_exclusive', 'not generated')} | {artifact_contract.get('size_passed', 'not generated')} | {artifact_contract.get('source_onnx_matches_declared_hash', 'not generated')} |",
         "",
         "## Text-and-domain grouped candidate",
         "",
-        "| Status | Evidence maturity | Test rows | Accuracy | Precision | Recall | F1 | FPR | Numeric gate | Split audit | ONNX parity |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|",
-        f"| {grouped.get('status', 'pending')} | {grouped_aggregate.get('evidence_maturity', 'not generated')} | {grouped_aggregate.get('samples', 'not generated')} | {grouped_aggregate.get('accuracy', 'not generated')} | {grouped_aggregate.get('precision', 'not generated')} | {grouped_aggregate.get('recall', 'not generated')} | {grouped_aggregate.get('f1_score', 'not generated')} | {grouped_aggregate.get('false_positive_rate', 'not generated')} | {grouped_aggregate.get('numeric_gate_passed', 'not generated')} | {grouped_aggregate.get('split_audit_passed', 'not generated')} | {grouped_aggregate.get('onnx_parity', 'not generated')} |",
+        "| Status | Evidence maturity | Test rows | Accuracy | Precision | Recall | F1 | FPR | Developmental | PKM v5 | Split audit | ONNX parity |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---|",
+        f"| {grouped.get('status', 'pending')} | {grouped_aggregate.get('evidence_maturity', 'not generated')} | {grouped_aggregate.get('samples', 'not generated')} | {grouped_aggregate.get('accuracy', 'not generated')} | {grouped_aggregate.get('precision', 'not generated')} | {grouped_aggregate.get('recall', 'not generated')} | {grouped_aggregate.get('f1_score', 'not generated')} | {grouped_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(grouped_aggregate, 'developmental_checkpoint')} | {named_gate_value(grouped_aggregate, 'pkm_progress_v5')} | {grouped_aggregate.get('split_audit_passed', 'not generated')} | {grouped_aggregate.get('onnx_parity', 'not generated')} |",
         "",
         "The text-and-domain grouped candidate is a separate research artifact. It does",
         "not replace the active client model automatically.",
         "",
         "## Text-and-domain grouped ablations",
         "",
-        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Gate |",
+        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Developmental gate |",
         "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     if ablations:
@@ -722,7 +777,7 @@ def render_model_report(
                 f"| {name} | {metrics.get('samples', '—')} | {metrics.get('accuracy', '—')} | "
                 f"{metrics.get('precision', '—')} | {metrics.get('recall', '—')} | "
                 f"{metrics.get('f1_score', '—')} | {metrics.get('false_positive_rate', '—')} | "
-                f"{metrics.get('numeric_gate_passed', '—')} |"
+                f"{named_gate_value(metrics, 'developmental_checkpoint')} |"
             )
     else:
         sections.append("| — | — | — | — | — | — | — | pending |")
@@ -734,7 +789,7 @@ def render_model_report(
         "positive-class variants also support train-only augmentation, and no",
         "camouflage dataset is persisted.",
         "",
-        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Gate |",
+        "| Variant | Samples | Accuracy | Precision | Recall | F1 | FPR | Developmental gate |",
         "|---|---:|---:|---:|---:|---:|---:|---|",
     ])
     camouflage_variants = camouflage.get("variants", {})
@@ -745,7 +800,7 @@ def render_model_report(
                 f"{markdown_value(metrics.get('accuracy'))} | {markdown_value(metrics.get('precision'))} | "
                 f"{markdown_value(metrics.get('recall'))} | {markdown_value(metrics.get('f1_score'))} | "
                 f"{markdown_value(metrics.get('false_positive_rate'))} | "
-                f"{markdown_value(metrics.get('numeric_gate_passed'))} |"
+                f"{markdown_value(named_gate_value(metrics, 'developmental_checkpoint'))} |"
             )
     else:
         sections.append("| — | — | — | — | — | — | — | pending |")
@@ -777,7 +832,7 @@ def render_model_report(
         "",
         "## Repeated grouped validation",
         "",
-        "| Status | Folds per repetition | Repetitions | Evaluations | Gate pass rate | Mean accuracy | Mean precision | Mean recall | Mean F1 | Mean FPR |",
+        "| Status | Folds per repetition | Repetitions | Evaluations | Developmental gate pass rate | Mean accuracy | Mean precision | Mean recall | Mean F1 | Mean FPR |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     cv_summary = repeated_cv.get("summary", {})

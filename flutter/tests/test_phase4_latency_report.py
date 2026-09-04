@@ -20,6 +20,7 @@ def sample(**overrides):
         "scenario": "warm_foreground_online",
         "browser_family": "chrome",
         "build_mode": "profile",
+        "product_flavor": "research",
         "model_version": "model_1",
         "ruleset_version": "rules_1",
         "outcome": "visible",
@@ -48,6 +49,78 @@ class Phase4LatencyReportTest(unittest.TestCase):
     def test_rejects_browsing_fields(self):
         errors = REPORT.validate_record(sample(url="https://never-record.invalid"), "evidence", 1)
         self.assertTrue(any("privacy allowlist" in error for error in errors))
+
+    def test_required_coverage_must_be_complete(self):
+        rows = [sample(sample_id=f"sample_{index}") for index in range(30)]
+        result = REPORT.report(
+            rows,
+            minimum_samples=30,
+            target_ms=200.0,
+            required_platforms=("android", "windows"),
+            required_browsers=("chrome",),
+            required_build_modes=("profile",),
+        )
+        self.assertFalse(result["passed"])
+        self.assertEqual(
+            [{"platform": "windows", "browser_family": "chrome", "build_mode": "profile"}],
+            result["missing_coverage"],
+        )
+
+    def test_progress_checkpoint_scopes_to_research_release_demo(self):
+        rows = [
+            sample(
+                sample_id=f"demo_{index}",
+                build_mode="release",
+                scenario="warm_foreground_online",
+            )
+            for index in range(30)
+        ]
+        rows.extend(
+            sample(
+                sample_id=f"debug_{index}",
+                build_mode="debug",
+                scenario="warm_foreground_online",
+                input_to_visible_ms=900.0,
+            )
+            for index in range(30)
+        )
+
+        result = REPORT.report(
+            rows,
+            minimum_samples=30,
+            target_ms=200.0,
+            required_platforms=("android",),
+            required_product_flavors=("research",),
+            required_browsers=("chrome",),
+            required_build_modes=("release",),
+            required_scenarios=("warm_foreground_online",),
+        )
+
+        self.assertTrue(result["passed"])
+        self.assertEqual(30, result["scoped_record_count"])
+        self.assertEqual(1, len(result["groups"]))
+
+    def test_feasibility_accepts_one_passing_environment(self):
+        rows = [sample(sample_id=f"passing_{index}") for index in range(30)]
+        rows.extend(
+            sample(
+                sample_id=f"diagnostic_{index}",
+                device_alias="other_device",
+                input_to_visible_ms=900.0,
+            )
+            for index in range(30)
+        )
+
+        result = REPORT.report(
+            rows,
+            minimum_samples=30,
+            target_ms=200.0,
+            minimum_passing_groups=1,
+            require_all_scoped_groups=False,
+        )
+
+        self.assertTrue(result["passed"])
+        self.assertEqual(1, result["passed_group_count"])
 
 
 if __name__ == "__main__":

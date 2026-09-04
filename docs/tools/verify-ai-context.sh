@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_CONTEXT_VERSION="2026-09-03.3"
+EXPECTED_CONTEXT_VERSION="2026-09-04.4"
 ALLOW_UNTRACKED=false
 ERRORS=0
 
@@ -52,6 +52,7 @@ required_files=(
   "README.md"
   "docs/ai/README.md"
   "docs/ai/android-anti-uninstall-context.md"
+  "docs/ai/pkm-usability-testing.md"
   "docs/ai/testing-run-receipt.md"
   "docs/ai/manifest.yaml"
   "CLAUDE.md"

@@ -147,6 +147,28 @@ class PublicEvidenceTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             PROMOTER.promote([record(url="https://never-record.invalid")], {}, VALIDATOR)
 
+    def test_latency_promoter_rejects_browsing_fields(self):
+        latency = load("phase4_latency", ROOT / "flutter/scripts/phase4_latency_report.py")
+        record = {
+            "schema_version": 3,
+            "platform": "android",
+            "run_id": "run_1",
+            "sample_id": "sample_1",
+            "device_alias": "pixel_1",
+            "scenario": "warm_foreground_online",
+            "browser_family": "chrome",
+            "build_mode": "profile",
+            "model_version": "model_1",
+            "ruleset_version": "rules_1",
+            "outcome": "visible",
+            "presentation_path": "native",
+            "block_succeeded": True,
+            "input_to_visible_ms": 120.0,
+            "url": "https://never-record.invalid",
+        }
+        with self.assertRaises(ValueError):
+            PROMOTER.promote_latency([record], latency)
+
     def test_public_scanner_rejects_nested_screenshot(self):
         errors = PUBLIC.forbidden_nested_values({"evidence": {"screenshot": "raw"}})
         self.assertTrue(any("screenshot" in error for error in errors))

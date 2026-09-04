@@ -22,6 +22,37 @@ python3 flutter/scripts/validate_android_tamper_report.py private/android-tamper
 Only validated aggregate records may be promoted to the shared
 `flutter/evidence/ledger/`; raw device output remains local.
 
+## Phase 4 latency promotion
+
+The public Phase 4 ledger accepts only the allowlisted aggregate timing schema.
+Promote a locally validated export without copying visual evidence or browsing
+data:
+
+```sh
+python3 flutter/scripts/promote_evidence.py phase4-latency \
+  --input flutter/private/phase4-latency.jsonl \
+  --output flutter/evidence/ledger/phase4-latency.jsonl
+```
+
+The latency contract deliberately has three levels. The **feasibility** gate
+accepts one homogeneous group with at least 30 successful samples, no failure,
+and p95 below 200 ms. The **PKM v5 progress-demo** checkpoint is smaller and
+matches the demonstration artifact: `researchRelease` on Android + Chrome,
+scenario `warm_foreground_online`, with the same 30-sample/no-failure/p95
+requirements. The **final-readiness** gate remains Android/Windows ×
+Chrome/Edge/Opera × profile/release under the same per-cell criteria. Debug
+builds are diagnostic only and cannot satisfy the progress-demo or final gate.
+
+A source-side Android measurement is not canonical runtime evidence until its
+privacy-safe aggregate records are promoted and validated. The canonical
+report renders all three checkpoints separately.
+
+## Future structured usability study
+
+The nine-student formative activity remains off-repository feedback, not a SUS
+result. The planned task + SUS study, governance prerequisite, and data
+boundary are in [`../docs/ai/pkm-usability-testing.md`](../docs/ai/pkm-usability-testing.md).
+
 ## Windows extension–model runtime
 
 The Windows client owns the classifier and intervention authority. The

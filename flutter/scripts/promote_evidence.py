@@ -16,8 +16,8 @@ from typing import Any
 SCRIPT_ROOT = Path(__file__).resolve().parent
 
 
-def load_validator():
-    path = SCRIPT_ROOT / "validate_android_tamper_report.py"
+def load_validator(name: str = "validate_android_tamper_report.py"):
+    path = SCRIPT_ROOT / name
     spec = importlib.util.spec_from_file_location("android_tamper_validator", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load validator: {path}")
@@ -86,9 +86,31 @@ def promote(records: list[dict[str, Any]], visual_hashes: dict[str, str], valida
     return sorted(promoted, key=lambda record: (record["run_id"], record["sample_id"]))
 
 
+def promote_latency(records: list[dict[str, Any]], validator: Any) -> list[dict[str, Any]]:
+    """Promote Phase 4 records without adding visual evidence fields.
+
+    The Phase 4 schema is an explicit privacy allowlist. Retaining the record
+    exactly after validation prevents this generic promoter from broadening it.
+    """
+
+    promoted: list[dict[str, Any]] = []
+    for record in records:
+        value = dict(record)
+        errors = validator.validate_record(value, "local-evidence", len(promoted) + 1)
+        if errors:
+            raise ValueError("; ".join(errors))
+        promoted.append(value)
+
+    sample_ids = [record["sample_id"] for record in promoted]
+    duplicates = sorted({sample_id for sample_id in sample_ids if sample_ids.count(sample_id) > 1})
+    if duplicates:
+        raise ValueError(f"duplicate sample_id values: {duplicates}")
+    return sorted(promoted, key=lambda record: (record["run_id"], record["sample_id"]))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("kind", choices=("android-tamper",))
+    parser.add_argument("kind", choices=("android-tamper", "phase4-latency"))
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
@@ -102,8 +124,15 @@ def main() -> int:
 
     try:
         visual_hashes = parse_visual_hashes(args.visual_hash)
-        validator = load_validator()
-        records = promote(read_jsonl(args.input), visual_hashes, validator)
+        source_records = read_jsonl(args.input)
+        if args.kind == "android-tamper":
+            validator = load_validator()
+            records = promote(source_records, visual_hashes, validator)
+        else:
+            if visual_hashes:
+                raise ValueError("phase4-latency does not accept visual evidence")
+            validator = load_validator("phase4_latency_report.py")
+            records = promote_latency(source_records, validator)
     except (OSError, ValueError, TypeError) as error:
         print(f"evidence promotion failed: {error}", file=sys.stderr)
         return 1

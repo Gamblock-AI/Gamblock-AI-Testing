@@ -1,17 +1,49 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "detection": {
-    "accuracy_min": 0.90,
-    "precision_min": 0.90,
-    "recall_min": 0.90,
-    "f1_score_min": 0.90,
-    "false_positive_rate_max": 0.05
+    "developmental_checkpoint": {
+      "accuracy_min": 0.90,
+      "precision_min": 0.90,
+      "recall_min": 0.90,
+      "f1_score_min": 0.90,
+      "false_positive_rate_max": 0.05
+    },
+    "pkm_progress_v5": {
+      "accuracy_min": 0.95,
+      "precision_min": 0.95,
+      "recall_min": 0.95,
+      "f1_score_min": 0.95,
+      "false_positive_rate_max": 0.02
+    }
+  },
+  "hybrid_artifact": {
+    "max_combined_bytes_exclusive": 5242880,
+    "runtime_format": "serialized_hybrid_json",
+    "required_platforms": ["android", "windows"]
   },
   "latency": {
-    "input_to_visible_ms_p95_exclusive": 200.0,
-    "minimum_successful_samples_per_group": 30,
-    "required_browser_families": ["chrome", "edge", "opera"],
-    "required_build_modes": ["debug", "profile", "release"]
+    "latency_feasibility": {
+      "input_to_visible_ms_p95_exclusive": 200.0,
+      "minimum_successful_samples_per_group": 30,
+      "minimum_passing_groups": 1,
+      "require_all_scoped_groups": false
+    },
+    "pkm_progress_v5_demo": {
+      "input_to_visible_ms_p95_exclusive": 200.0,
+      "minimum_successful_samples_per_group": 30,
+      "required_platforms": ["android"],
+      "required_product_flavors": ["research"],
+      "required_browser_families": ["chrome"],
+      "required_build_modes": ["release"],
+      "required_scenarios": ["warm_foreground_online"]
+    },
+    "final_readiness": {
+      "input_to_visible_ms_p95_exclusive": 200.0,
+      "minimum_successful_samples_per_group": 30,
+      "required_platforms": ["android", "windows"],
+      "required_browser_families": ["chrome", "edge", "opera"],
+      "required_build_modes": ["profile", "release"]
+    }
   },
   "pattern_interrupt": {
     "duration_seconds_min": 5,
