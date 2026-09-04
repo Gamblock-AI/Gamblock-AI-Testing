@@ -174,6 +174,49 @@ inspection when configured by the operator. It is not a replacement for
 Android Studio Device Streaming, ADB, or the manual system-UI workflow. No
 Firebase credential, project secret, or MCP configuration is committed here.
 
+## Cost-controlled remote execution
+
+Remote device time is a scarce, billable execution resource. Prepare and
+validate everything that does not require an OEM system UI before reserving a
+device:
+
+1. Run local unit/contract checks, verify the signed Research release APK, and
+   freeze the source tag, checksum, run IDs, scenario list, and operator notes.
+2. Select one representative device for each missing OEM family. Do not open a
+   separate remote session for every scenario or every similar handset unless
+   the first result shows an OS/version-specific difference.
+3. Reserve/activate the remote device only after the previous steps are ready.
+   Start a visible session timer, run `preflight`, and execute only the planned
+   scenarios in that one session.
+4. Release the remote device as soon as the after-state is captured. Validate,
+   promote, regenerate the report, and edit documentation locally after the
+   session has ended.
+
+> **IMPORTANT — penghematan biaya remote**
+>
+> Jangan melakukan build, memperbaiki kode, mengubah runbook, atau mencoba
+> ulang prosedur secara eksploratif ketika Device Streaming sedang aktif.
+> Siapkan APK, command, label UI, dan skenario terlebih dahulu. Tetapkan batas
+> waktu manual per sesi dan hentikan sesi bila preflight gagal atau perangkat
+> tidak stabil. Budget alert Google Cloud hanya memberi peringatan dan tidak
+> otomatis membatasi tagihan.
+
+At the preparation stage it is normal for `adb devices` to show no device (or
+no ready device). This is not a test failure and must not trigger retries,
+builds, or a Firebase reservation. Run `preflight`, `capture-before`, and
+device actions only after the operator explicitly activates/reserves the
+device and ADB reports it as ready.
+
+Firebase distinguishes interactive Android Device Streaming from automated
+Test Lab matrices. Streaming is appropriate only for OEM system-UI scenarios
+that need manual interaction. App-contained checks should be moved to local
+tests or automated Test Lab instrumentation/Robo where their semantics remain
+valid. Review the current [Test Lab quotas and pricing](https://firebase.google.com/docs/test-lab/usage-quotas-pricing)
+before every campaign: the documented allowance is 30 no-cost Device
+Streaming minutes per project per month, followed by per-minute billing; the
+automated physical/virtual-device quotas and rates are different. Pricing and
+catalog availability can change.
+
 ## Local commands
 
 From this repository, with the client checkout available as a sibling:

@@ -24,6 +24,28 @@ they share device identity, release-artifact, privacy, and cleanup rules.
 - [ ] Use a disposable physical, cloud, or loaner device and a synthetic test
       fixture. Do not use participant accounts or real browsing content.
 
+> **IMPORTANT — remote-cost gate:** During preparation, `adb devices` may show
+> no device. This is expected while a Firebase session is inactive. Do not
+> reserve/activate a remote device, retry commands, or treat the empty ADB
+> list as a test failure until the APK, run IDs, scenario list, and commands
+> are ready.
+
+## Remote-session cost gate
+
+- [ ] Complete local artifact verification, unit/contract checks, and runbook
+      preparation before reserving or activating Firebase Device Streaming.
+- [ ] Choose one representative device for the required OEM family; reserve a
+      second model only when the first result exposes an OS/version difference.
+- [ ] Confirm the current Firebase quota/pricing and set a manual maximum
+      session time before connecting. Budget alerts warn but do not cap usage.
+- [ ] Prepare the release APK, checksum, source tag, unique run/sample IDs,
+      commands, and expected outcomes before the paid session starts.
+- [ ] Use one remote session per device and run only the selected manual OEM
+      scenarios. Do not debug code or edit documentation while the session is
+      active.
+- [ ] Release/return the device immediately after recording the after-state;
+      perform validation, promotion, and report regeneration locally.
+
 ## Anti-uninstall execution
 
 - [ ] Verify the exact signed Research release APK before installation:
