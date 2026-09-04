@@ -11,7 +11,7 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 | Status | Samples | Groups | OEM families | Scenarios | Coverage complete |
 |---|---:|---:|---:|---:|---|
-| failed | 13 | 13 | 2 | 8 | False |
+| failed | 17 | 17 | 2 | 10 | False |
 
 ## Phase 4 latency
 
@@ -40,9 +40,13 @@ blocked uninstall assertion.
 | Google Pixel 9 Pro Remote | tamper_pixel_2026_09 / pixel9pro_process_kill_01 | aosp | 35 | debug | firebase_test_lab_android_device_streaming | process_kill | none | process_kill / none | recovered → recovered | none | true → true | true → true | true → true | true | 1.0 | passed |
 | Google Pixel 9 Pro Remote | tamper_pixel_2026_09 / pixel9pro_settings_uninstall_01 | aosp | 35 | debug | firebase_test_lab_android_device_streaming | settings_uninstall | settings | uninstall / uninstall | blocked → warned | none | true → true | true → true | true → true | true | — | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_app_info_passive_01 | xiaomi_redmi | 34 | release | local_physical_device | app_info_passive | app_info | none / none | no_tamper → no_tamper | none | true → true | true → true | true → true | true | — | passed |
+| Redmi 12C | tamper_redmi12c_release_20260905 / redmi_clear_data_01 | xiaomi_redmi | 34 | release | local_physical_device | clear_data | app_info | clear_data / clear_data | degraded → degraded | none | true → true | true → false | true → false | true | 5.0 | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_disable_accessibility_01 | xiaomi_redmi | 34 | release | local_physical_device | disable_accessibility | accessibility_settings | disable_accessibility / disable_accessibility | degraded → degraded | none | true → true | true → false | true → true | true | — | passed |
+| Redmi 12C | tamper_redmi12c_release_20260905 / redmi_force_stop_01 | xiaomi_redmi | 34 | release | local_physical_device | force_stop | none | force_stop / none | recovered → recovered | none | true → true | true → false | true → true | true | 11.0 | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_launcher_uninstall_01 | xiaomi_redmi | 34 | release | local_physical_device | launcher_uninstall | launcher | uninstall / uninstall | blocked → blocked | none | true → true | true → true | true → true | true | — | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_package_installer_uninstall_01 | xiaomi_redmi | 34 | release | local_physical_device | package_installer_uninstall | package_installer | uninstall / uninstall | blocked → blocked | none | true → true | true → true | true → true | true | — | passed |
+| Redmi 12C | tamper_redmi12c_release_20260905 / redmi_process_kill_01 | xiaomi_redmi | 34 | release | local_physical_device | process_kill | none | process_kill / none | recovered → recovered | none | true → true | true → true | true → true | true | 3.0 | passed |
+| Redmi 12C | tamper_redmi12c_release_20260905 / redmi_reboot_01 | xiaomi_redmi | 34 | release | local_physical_device | reboot | none | reboot / none | recovered → recovered | none | true → true | true → true | true → true | true | 53.0 | passed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_settings_uninstall_01 | xiaomi_redmi | 34 | release | local_physical_device | settings_uninstall | settings | uninstall / uninstall | blocked → failed | none | true → false | true → false | true → false | false | — | failed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_setup_01 | xiaomi_redmi | 34 | release | local_physical_device | setup | none | none / none | no_tamper → no_tamper | none | true → true | true → true | true → true | true | — | passed |
 

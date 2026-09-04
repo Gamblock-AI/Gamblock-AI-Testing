@@ -41,12 +41,14 @@ Current interpretation:
   `flutter/report.md`.
 - Redmi 12C (`redmi_12c_local_01`) now has a validated Phase 4 latency run and
   a partial Android Research release anti-uninstall ledger. Launcher and
-  Package Installer uninstall attempts were blocked, Accessibility disable was
-  recorded as the expected degraded state, and the Settings uninstall attempt
-  removed the package after MIUI deactivated Device Admin (`removal_not_blocked`).
-  The failure is retained as evidence; it is not converted into a pass. The
-  device therefore remains in the anti-uninstall retest queue until the full
-  matrix (including lifecycle and grant scenarios) is complete.
+  Package Installer uninstall attempts were blocked, Accessibility disable and
+  clear-data were recorded as expected degraded states, and process-kill,
+  force-stop (after an explicit relaunch), and reboot all recovered the
+  protection process. The Settings uninstall attempt removed the package after
+  MIUI deactivated Device Admin (`removal_not_blocked`). The failure is retained
+  as evidence; it is not converted into a pass. Valid/invalid grant scenarios
+  are still pending because no backend-issued grant/account flow was available
+  during this run, so the device remains in the anti-uninstall retest queue.
 - Samsung Galaxy A14 had a device-reservation attempt that did not complete.
   It is an operational setup note only, not a test result.
 - Samsung, Xiaomi/Redmi, OPPO/Realme, and Vivo coverage remains incomplete
