@@ -30,6 +30,18 @@ they share device identity, release-artifact, privacy, and cleanup rules.
 > list as a test failure until the APK, run IDs, scenario list, and commands
 > are ready.
 
+### Operator readiness handshake
+
+- [ ] Keep the agent in `waiting-for-device` during all preparation work.
+- [ ] The operator explicitly confirms readiness (for example,
+      `device remote sudah aktif dan siap diuji`) before the agent invokes ADB,
+      reserves/uses Device Streaming, or starts `preflight`.
+- [ ] After confirmation, perform one ADB readiness check. If no device is
+      ready, report `waiting`/`blocked` and wait for the operator; do not poll
+      repeatedly or create another reservation.
+- [ ] Require a new explicit confirmation if the device disconnects, changes,
+      or is replaced.
+
 ## Remote-session cost gate
 
 - [ ] Complete local artifact verification, unit/contract checks, and runbook

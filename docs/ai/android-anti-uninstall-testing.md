@@ -207,6 +207,21 @@ builds, or a Firebase reservation. Run `preflight`, `capture-before`, and
 device actions only after the operator explicitly activates/reserves the
 device and ADB reports it as ready.
 
+### Operator readiness handshake
+
+The default agent state is `waiting-for-device`. The agent must not invoke ADB,
+poll for a device, reserve Firebase Device Streaming, or start any device
+procedure while this state is active. After all local preparation is complete,
+the operator explicitly confirms, for example:
+
+> `device remote sudah aktif dan siap diuji`
+
+Only after that confirmation may the agent perform one ADB readiness check and
+continue to `preflight`. If ADB is still empty after the confirmation, report
+the device as not ready and wait for the operator; do not retry in a loop or
+start a new reservation. A newly connected or replaced device requires a new
+explicit confirmation.
+
 Firebase distinguishes interactive Android Device Streaming from automated
 Test Lab matrices. Streaming is appropriate only for OEM system-UI scenarios
 that need manual interaction. App-contained checks should be moved to local
