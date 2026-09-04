@@ -31,6 +31,123 @@ The required OEM families and scenario list are versioned in
 [`flutter/config/device-matrix.json`](../../flutter/config/device-matrix.json). A missing
 scenario is `pending`, never `passed`.
 
+## Reproducible device workflow
+
+Use this sequence for every new handset or Firebase session. The commands use
+`SERIAL` as a local shell placeholder; never copy the real serial into a
+receipt, ledger, screenshot, or report.
+
+### 1. Verify the exact release artifact
+
+Use the signed Research **release** APK that will be demonstrated. Before
+installing, record the following in a private receipt and verify them locally:
+
+- package: `com.gamblock.gamblock_ai_apps.research`;
+- version name and build number;
+- `debuggable=false`;
+- APK SHA-256 and signing-certificate fingerprint; and
+- source commit or immutable release tag.
+
+For example, with Android SDK tools available:
+
+```sh
+apksigner verify --verbose --print-certs RESEARCH_APK
+apkanalyzer manifest application-id RESEARCH_APK
+apkanalyzer manifest version-name RESEARCH_APK
+apkanalyzer manifest version-code RESEARCH_APK
+apkanalyzer manifest debuggable RESEARCH_APK
+sha256sum RESEARCH_APK
+```
+
+Install an approved update with `adb install -r RESEARCH_APK`. Do not use
+`adb uninstall` as setup, do not downgrade with `-d`, and do not replace a
+release APK with a debug/profile APK during the same run.
+
+### 2. Establish and capture a healthy baseline
+
+1. Use a disposable device and a synthetic fixture; do not use participant
+   accounts or real browsing content.
+2. Open the Research app and approve Device Admin and Accessibility through the
+   Android system UI. Android does not permit the app to silently re-enable
+   Accessibility.
+3. Run `preflight` and continue only when the package, Device Admin,
+   Accessibility service, and `:protection` process are all healthy.
+4. Run `capture-before` with a new `run_id`, `sample_id`, device alias, OEM
+   family, Android API, and `--build-mode release`.
+
+The baseline must be captured immediately before the single scenario action.
+If any baseline flag is false, repair the setup and capture a new baseline;
+do not reinterpret an unhealthy run as a tamper result.
+
+### 3. Perform exactly one system-UI scenario
+
+Do not automate coordinates or assume that an OEM uses AOSP labels. Follow the
+visible labels on the device and record the actual surface and action.
+
+For the Redmi/Xiaomi Settings scenario, the complete single action is:
+
+1. Open Settings → Apps → Gamblock-AI Research app info.
+2. Tap **Uninstal**.
+3. If MIUI opens **Aplikasi admin perangkat**, select
+   **Nonaktifkan & uninstal**.
+4. If Package Installer asks for confirmation, confirm only this Gamblock
+   removal when the disposable-device run explicitly authorizes it.
+5. Observe whether the package, Device Admin, Accessibility, and protection
+   process remain present.
+
+The expected outcome with `grant_state=none` is `blocked`: the package and
+administrator remain active. If MIUI reaches the package-installer confirmation
+and the package is removed, record `actual_outcome=failed` and
+`failure_code=removal_not_blocked`; never relabel that observation as a pass.
+Canceling the dialog is a different observation and must be recorded with its
+actual outcome.
+
+Launcher, Package Installer, Accessibility-disable, clear-data, force-stop,
+process-kill, and reboot are separate scenarios. Capture and record each one
+individually; do not combine several actions into one sample. Lifecycle
+commands require `--acknowledge-disposable-device`.
+
+### 4. Record, validate, and promote
+
+Immediately after the action, run `record-after` using the labels actually
+observed. Keep expected and actual outcomes separate:
+
+```sh
+./flutter/scripts/run-android-tamper-matrix.sh record-after \
+  --device SERIAL \
+  --state flutter/private/DEVICE-settings.state.json \
+  --output flutter/private/android-tamper.jsonl \
+  --scenario settings_uninstall \
+  --surface settings \
+  --action uninstall \
+  --observed-action uninstall \
+  --expected-outcome blocked \
+  --actual-outcome ACTUAL_OUTCOME \
+  --result RESULT \
+  --grant-state none \
+  --evidence-reference DEVICE_settings_uninstall_01
+```
+
+Then validate the private export and promote only the allowlisted aggregate
+record into the matching device folder. A failed or incomplete record is
+valuable evidence and must not be deleted to make the matrix look complete.
+
+### 5. Restore the device before ending the run
+
+If the test removed the package, reinstall the same verified Research release
+APK and manually re-activate Device Admin and Accessibility. Run `preflight`
+again and confirm all four health checks are true. Do not clear data or change
+settings in other applications. Keep APKs, UI dumps, ADB output, and raw logs
+outside the repository according to the private run receipt.
+
+### Redmi 12C lesson retained for future devices
+
+On Redmi 12C, both the original and v1.6.6 retest followed the MIUI
+**Nonaktifkan & uninstal** path and removed the package after confirmation.
+The code records the deactivation attempt, but a standard APK cannot veto the
+OS-level administrator deactivation. This is a platform limitation, not a
+setup step to bypass. Other OEMs must be tested and reported independently.
+
 ## Firebase Device Streaming workflow
 
 Firebase Device Streaming is an optional interactive source of remote physical

@@ -24,6 +24,33 @@ they share device identity, release-artifact, privacy, and cleanup rules.
 - [ ] Use a disposable physical, cloud, or loaner device and a synthetic test
       fixture. Do not use participant accounts or real browsing content.
 
+## Anti-uninstall execution
+
+- [ ] Verify the exact signed Research release APK before installation:
+      package, version/build, `debuggable=false`, SHA-256, signing certificate,
+      and immutable source tag/commit.
+- [ ] Update with `adb install -r`; never uninstall as setup, downgrade the
+      package, or switch to a debug/profile APK during the run.
+- [ ] Approve Device Admin and Accessibility manually through Android system
+      UI, then run `preflight` until package, admin, Accessibility, and
+      `:protection` process are all healthy.
+- [ ] Run `capture-before` immediately before one scenario using fresh
+      `run_id`/`sample_id` values and `--build-mode release`.
+- [ ] Perform exactly one visible system action. Do not rely on AOSP labels or
+      fixed coordinates; follow the OEM's displayed flow.
+- [ ] For Redmi/Xiaomi Settings uninstall, record the complete chain:
+      **Uninstal** → **Aplikasi admin perangkat** → **Nonaktifkan & uninstal**
+      → Package Installer confirmation.
+- [ ] With no grant, expect the package and administrator to remain active. If
+      the user confirmation removes the package, record `failed` with
+      `removal_not_blocked`; do not convert it to a warning-only pass.
+- [ ] Run `record-after` immediately and preserve expected versus actual
+      outcome, package state, admin state, Accessibility state, and process
+      state.
+- [ ] If removal occurred, reinstall the same verified release APK, manually
+      restore Device Admin and Accessibility, and run `preflight` before
+      finishing.
+
 ## During the run
 
 - [ ] Run `preflight` and confirm the Research package, Device Admin,
