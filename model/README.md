@@ -29,9 +29,11 @@ repository under `model/evidence/visuals/`. Aggregate JSON evidence is stored un
 and temporary candidate artifacts remain local in ignored `model/private/`.
 
 The evaluator reports two named gates: `developmental_checkpoint` (accuracy,
-precision, recall, and F1 >=90%; FPR <=5%) for candidate screening, and
-`pkm_progress_v5` (each of those metrics >=95%; FPR <=2%) for a leakage-safe
-result that may be represented as a v5 progress-report achievement. Neither
+precision, recall, and F1 >=90%; FPR <=5%) for candidate screening, and the
+report-version gate selected by `--report-version`. v5 retains
+`pkm_progress_v5` (each metric >=95%; FPR <=2%) for historical reproduction;
+the approved v6 configuration uses `pkm_progress_v6` (each metric >=90%; FPR
+<=5%) and is inactive until its report and registry target are active. Neither
 gate alters the PKM proposal or promotes a candidate automatically. The runtime
 projection also checks the size and ONNX-hash provenance of the serialized
 Hybrid model/rules actually loaded by the client, while keeping physical

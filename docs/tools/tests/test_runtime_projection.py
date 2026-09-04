@@ -54,6 +54,20 @@ class RuntimeProjectionTest(unittest.TestCase):
         self.assertTrue(metrics["gates"]["developmental_checkpoint"]["passed"])
         self.assertTrue(metrics["gates"]["pkm_progress_v5"]["passed"])
 
+    def test_versioned_v6_config_uses_v6_progress_gate(self) -> None:
+        workspace = projection.WORKSPACE_ROOT
+        default_targets = projection.TARGETS_PATH
+        try:
+            projection.configure_workspace(
+                workspace,
+                projection.TESTING_ROOT / "docs/config/targets-v6.json",
+            )
+            metrics = projection.metric_summary([1] * 90 + [0] * 10, [1] * 90 + [0] * 10)
+            self.assertTrue(metrics["gates"]["pkm_progress_v6"]["passed"])
+            self.assertNotIn("pkm_progress_v5", metrics["gates"])
+        finally:
+            projection.configure_workspace(workspace, default_targets)
+
 
 if __name__ == "__main__":
     unittest.main()

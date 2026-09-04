@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import tempfile
 import unittest
 from unittest import mock
 
@@ -44,6 +45,45 @@ def record(**overrides):
 
 
 class RunEvaluationReportTest(unittest.TestCase):
+    def test_evidence_ledgers_are_discovered_per_device(self):
+        with tempfile.TemporaryDirectory() as directory:
+            testing_root = pathlib.Path(directory)
+            ledger_root = testing_root / "flutter/evidence/ledger"
+            (ledger_root / "pixel_1").mkdir(parents=True)
+            (ledger_root / "redmi_12c_local_01").mkdir()
+            (ledger_root / "pixel_1" / "phase4-latency.jsonl").write_text("", encoding="utf-8")
+            (ledger_root / "redmi_12c_local_01" / "phase4-latency.jsonl").write_text("", encoding="utf-8")
+
+            with mock.patch.object(RUNNER, "TESTING_ROOT", testing_root):
+                paths = RUNNER.evidence_ledger_paths("phase4-latency.jsonl")
+
+        self.assertEqual(
+            [
+                ledger_root / "pixel_1" / "phase4-latency.jsonl",
+                ledger_root / "redmi_12c_local_01" / "phase4-latency.jsonl",
+            ],
+            paths,
+        )
+
+    def test_default_target_config_is_v5(self):
+        path, config = RUNNER.resolve_target_config(ROOT.parent, "v5")
+
+        self.assertEqual("targets.json", path.name)
+        self.assertNotIn("report_version", config)
+        self.assertIn("pkm_progress_v5", config["detection"])
+
+    def test_v6_target_config_requires_report_and_registry_activation(self):
+        with self.assertRaisesRegex(ValueError, "laporan-kemajuan-v6.md"):
+            RUNNER.resolve_target_config(ROOT.parent, "v6")
+
+    def test_v6_target_config_can_be_inspected_before_activation(self):
+        path, config = RUNNER.resolve_target_config(ROOT.parent, "v6", require_active=False)
+
+        self.assertEqual("targets-v6.json", path.name)
+        self.assertEqual("approved", config["activation_status"])
+        self.assertEqual("v6-detection-progress", config["detection_progress_target_id"])
+        self.assertIn("pkm_progress_v6", config["detection"])
+
     def test_flutter_component_includes_windows_extension_model_e2e(self):
         self.assertIn(
             "windows_extension_model_e2e",
@@ -339,6 +379,18 @@ class RunEvaluationReportTest(unittest.TestCase):
             self.assertIn(section, report)
         self.assertIn("case_variation", report)
         self.assertNotIn("https://", report)
+
+    def test_model_report_uses_selected_progress_gate_label(self):
+        report = RUNNER.render_model_report(
+            {"status": "pending"},
+            {"status": "pending"},
+            [],
+            "v6",
+        )
+
+        self.assertIn("Target configuration: `v6` (`v6-detection-progress`).", report)
+        self.assertIn("PKM v6", report)
+        self.assertNotIn("PKM v5", report)
 
 
 if __name__ == "__main__":

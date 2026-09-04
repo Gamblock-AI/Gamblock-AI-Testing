@@ -238,7 +238,7 @@ def main() -> int:
             continue
         errors.extend(forbidden_nested_values(value, str(path)))
 
-    for path in sorted(ROOT.glob("*/evidence/ledger/*.jsonl")):
+    for path in sorted(ROOT.glob("*/evidence/ledger/**/*.jsonl")):
         validate_ledger(path, errors)
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if not line.strip():

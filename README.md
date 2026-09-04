@@ -6,15 +6,17 @@ Research anti-uninstall behavior, and aggregate component verification.
 
 Each technology owns one canonical aggregate report. The link-only index is
 [`docs/testing-index.md`](docs/testing-index.md); JSONL files under a technology's
-`evidence/ledger/` folder are source records, not alternate reports. Component
-repositories link here instead of copying test results.
+`evidence/ledger/` folder are source records, not alternate reports. Android
+runtime ledgers are grouped below `flutter/evidence/ledger/<device_alias>/`.
+Component repositories link here instead of copying test results.
 
 ## Layout
 
 | Path | Responsibility |
 |---|---|
-| `docs/config/targets.json` | Active v5 machine-readable detection/artifact/latency gates |
-| `../context/progress-targets.md` | Versioned target registry; proposed v6 targets do not affect the v5 runner |
+| `docs/config/targets.json` | v5 machine-readable detection/artifact/latency gates retained for historical reproduction |
+| `docs/config/targets-vN.json` | Versioned future gates selected only after the matching report and registry target are active |
+| `../context/progress-targets.md` | Versioned target registry and vN→v(N+1) activation workflow |
 | `docs/testing-index.md` | Link-only index of canonical reports |
 | `docs/tools/` | Cross-system runner, validators, and tooling tests |
 | `flutter/` | Flutter/Android anti-uninstall and latency tooling/tests |
@@ -38,10 +40,11 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
 
-The report-version boundary and target lifecycle are maintained in the
+The report-version boundary, next-integer version rule, and target lifecycle are maintained in the
 umbrella's [`context/progress-targets.md`](../context/progress-targets.md).
-Keep the v5 configuration active until a future report version explicitly
-activates its approved targets.
+Keep the v5 configuration available for historical reproduction; a future
+`targets-vN.json` becomes selectable only when its report copy and approved
+registry target are explicitly activated.
 
 For model evidence, use the explicit evaluation and unit-test flags:
 
@@ -58,7 +61,7 @@ All permanent model outputs are stored below `model/evidence/`; raw prediction
 tables used as replay input remain only in the ignored `model/private/` staging
 area. The grouped candidate is not an automatic replacement for the active
 client artifact. The generated result distinguishes the 90%/5% developmental
-gate from the stricter 95%/2% PKM v5 acceptance gate, and records the active
+gate from the report-version acceptance gate, and records the active
 serialized Hybrid artifact's size/provenance contract. Device-runtime is an
 explicit exclusion of this model progress run.
 
@@ -76,6 +79,10 @@ Use the Research flavor only on a disposable emulator, cloud device, or loaner
 device. The complete matrix, Firebase Device Streaming guidance, manual system
 UI workflow, cross-OEM problem context, Firebase service context, and evidence promotion rules are in
 [`docs/ai/android-anti-uninstall-testing.md`](docs/ai/android-anti-uninstall-testing.md).
+For any new handset or Firebase session, follow the shared
+[`docs/ai/android-device-run-checklist.md`](docs/ai/android-device-run-checklist.md).
+The Research release latency procedure is maintained separately in
+[`docs/ai/android-phase4-latency-testing.md`](docs/ai/android-phase4-latency-testing.md).
 
 The runner does not reserve a Firebase device automatically. A Firebase or
 Android Studio session must be started manually after the matrix has been

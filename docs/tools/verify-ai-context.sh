@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_CONTEXT_VERSION="2026-09-04.4"
+EXPECTED_CONTEXT_VERSION="2026-09-04.5"
 ALLOW_UNTRACKED=false
 ERRORS=0
 
@@ -53,8 +53,11 @@ required_files=(
   "docs/ai/README.md"
   "docs/ai/android-anti-uninstall-context.md"
   "docs/ai/pkm-usability-testing.md"
+  "docs/ai/android-device-run-checklist.md"
+  "docs/ai/android-phase4-latency-testing.md"
   "docs/ai/testing-run-receipt.md"
   "docs/ai/manifest.yaml"
+  "docs/config/targets-v6.json"
   "CLAUDE.md"
   "GEMINI.md"
   ".github/copilot-instructions.md"

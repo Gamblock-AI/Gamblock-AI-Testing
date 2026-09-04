@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -50,6 +51,63 @@ MODEL_EVIDENCE_ROOT = TESTING_ROOT / "model/evidence"
 MODEL_AGGREGATE_ROOT = MODEL_EVIDENCE_ROOT / "aggregate"
 MODEL_VISUAL_ROOT = MODEL_EVIDENCE_ROOT / "visuals"
 MODEL_PRIVATE_ROOT = TESTING_ROOT / "model/private"
+TARGET_CONFIG_ROOT = TESTING_ROOT / "docs/config"
+DEFAULT_REPORT_VERSION = "v5"
+REPORT_VERSION_PATTERN = re.compile(r"^v([1-9][0-9]*)$")
+
+
+def normalize_report_version(report_version: str) -> str:
+    value = str(report_version).strip().lower()
+    if not REPORT_VERSION_PATTERN.fullmatch(value):
+        raise ValueError("report version must use the form vN, for example v5 or v6")
+    return value
+
+
+def resolve_target_config(
+    workspace_root: Path,
+    report_version: str = DEFAULT_REPORT_VERSION,
+    require_active: bool = True,
+) -> tuple[Path, dict[str, Any]]:
+    """Resolve and validate the versioned target configuration.
+
+    v5 remains the default historical configuration. Future versions require
+    both their report copy and an explicit active registry entry before they
+    can produce evidence.
+    """
+
+    version = normalize_report_version(report_version)
+    filename = "targets.json" if version == "v5" else f"targets-{version}.json"
+    path = TARGET_CONFIG_ROOT / filename
+    if not path.is_file():
+        raise ValueError(f"no target configuration exists for report version {version}: {path.name}")
+    try:
+        configuration = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"target configuration could not be read: {path}: {error}") from error
+    configured_version = str(configuration.get("report_version", "v5")).lower()
+    if configured_version != version:
+        raise ValueError(
+            f"target configuration {path.name} declares {configured_version}, expected {version}"
+        )
+    if version == "v5" or not require_active:
+        return path, configuration
+
+    report_path = workspace_root / "context" / f"laporan-kemajuan-{version}.md"
+    if not report_path.is_file():
+        raise ValueError(f"{version} is not active: create {report_path.name} before evaluation")
+    registry_path = workspace_root / "context" / "progress-targets.md"
+    target_id = configuration.get("detection_progress_target_id")
+    if not target_id or not registry_path.is_file():
+        raise ValueError(f"{version} is not active: target registry entry is unavailable")
+    registry = registry_path.read_text(encoding="utf-8")
+    marker = re.compile(
+        rf"\|\s*`?{re.escape(str(target_id))}`?\s*\|\s*`?{re.escape(version)}`?\s*\|\s*`?active`?\s*\|"
+    )
+    if not marker.search(registry):
+        raise ValueError(f"{version} is not active: registry target {target_id} must be active")
+    if str(configuration.get("activation_status", "")).lower() != "active":
+        raise ValueError(f"{version} is not active: {path.name} must declare activation_status=active")
+    return path, configuration
 
 
 def load_module(name: str, path: Path) -> Any:
@@ -127,12 +185,25 @@ def pending(name: str, reason: str) -> dict[str, Any]:
     return {"name": name, "status": "pending", "reason": reason}
 
 
+def evidence_ledger_paths(filename: str) -> list[Path]:
+    """Return legacy and per-device public ledgers in deterministic order."""
+
+    root = TESTING_ROOT / "flutter/evidence/ledger"
+    legacy = root / filename
+    nested = sorted(root.glob(f"*/{filename}"))
+    paths: list[Path] = []
+    if legacy.exists():
+        paths.append(legacy)
+    paths.extend(path for path in nested if path != legacy)
+    return paths
+
+
 def read_android_evidence() -> tuple[list[dict[str, Any]], list[str], bool]:
-    ledger = TESTING_ROOT / "flutter/evidence/ledger/android-tamper.jsonl"
-    if not ledger.exists():
+    ledgers = evidence_ledger_paths("android-tamper.jsonl")
+    if not ledgers:
         return [], [], False
     validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
-    records, errors = validator.load_records([ledger])
+    records, errors = validator.load_records(ledgers)
     return records, errors, True
 
 
@@ -174,11 +245,15 @@ def read_android_summary() -> dict[str, Any]:
     }
 
 
-def read_latency_summary() -> dict[str, Any]:
-    ledger = TESTING_ROOT / "flutter/evidence/ledger/phase4-latency.jsonl"
-    targets = json.loads((TESTING_ROOT / "docs/config/targets.json").read_text(encoding="utf-8"))
+def read_latency_summary(
+    targets: dict[str, Any] | None = None,
+    report_version: str = DEFAULT_REPORT_VERSION,
+) -> dict[str, Any]:
+    ledgers = evidence_ledger_paths("phase4-latency.jsonl")
+    if targets is None:
+        targets = json.loads((TARGET_CONFIG_ROOT / "targets.json").read_text(encoding="utf-8"))
     latency_targets = targets["latency"]
-    if not ledger.exists():
+    if not ledgers:
         reason = "No promoted Phase 4 latency ledger exists."
         return {
             "name": "phase4_latency",
@@ -190,7 +265,7 @@ def read_latency_summary() -> dict[str, Any]:
             ],
         }
     validator = load_module("phase4_latency_validator", TESTING_ROOT / "flutter/scripts/phase4_latency_report.py")
-    records, errors = validator.load_records([ledger])
+    records, errors = validator.load_records(ledgers)
     if errors:
         return {"name": "phase4_latency", "status": "failed", "error_count": len(errors)}
     checkpoints: list[dict[str, Any]] = []
@@ -216,7 +291,8 @@ def read_latency_summary() -> dict[str, Any]:
             "coverage_complete": aggregate["coverage_complete"],
             "missing_coverage_count": len(aggregate["missing_coverage"]),
         })
-    progress = next(item for item in checkpoints if item["name"] == "pkm_progress_v5_demo")
+    progress_name = f"pkm_progress_{normalize_report_version(report_version)}_demo"
+    progress = next(item for item in checkpoints if item["name"] == progress_name)
     return {
         "name": "phase4_latency",
         "status": progress["status"],
@@ -224,7 +300,12 @@ def read_latency_summary() -> dict[str, Any]:
     }
 
 
-def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+def run_model_replay(
+    workspace_root: Path,
+    target_config_path: Path | None = None,
+    report_version: str = DEFAULT_REPORT_VERSION,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    target_config_path = target_config_path or TARGET_CONFIG_ROOT / "targets.json"
     model_root = workspace_root / "gamblock-ai-model"
     if not model_root.is_dir():
         reason = "Model repository is not available."
@@ -243,6 +324,8 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
                 str(TESTING_ROOT / "docs/tools/runtime_projection.py"),
                 "--workspace-root",
                 str(workspace_root),
+                "--targets-config",
+                str(target_config_path),
                 "--output",
                 str(projection_output),
             ],
@@ -261,6 +344,8 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
                 str(grouped_onnx),
                 "--plot-dir",
                 str(MODEL_VISUAL_ROOT),
+                "--targets-config",
+                str(target_config_path),
                 "--public-safe",
             ],
             model_root,
@@ -271,14 +356,21 @@ def run_model_replay(workspace_root: Path) -> tuple[dict[str, Any], dict[str, An
             projection = json.loads(projection_output.read_text(encoding="utf-8"))
             metrics = projection.get("evaluation", {}).get("deployed_hybrid", {})
             projection_result["aggregate"] = {
-                key: metrics.get(key) for key in ("accuracy", "precision", "recall", "f1_score", "false_positive_rate")
+                "report_version": projection.get("report_version", report_version),
+                "target_configuration": projection.get("target_configuration", {}),
             }
+            projection_result["aggregate"].update({
+                key: metrics.get(key)
+                for key in ("accuracy", "precision", "recall", "f1_score", "false_positive_rate")
+            })
             projection_result["aggregate"]["gates"] = metrics.get("gates", {})
             projection_result["aggregate"]["artifact_contract"] = projection.get("artifact_contract", {})
         if grouped_result.get("status") == "passed" and grouped_output.exists():
             grouped = json.loads(grouped_output.read_text(encoding="utf-8"))
             metrics = grouped.get("evaluation", {}).get("final_test", {})
             grouped_result["aggregate"] = {
+                "report_version": grouped.get("report_version", report_version),
+                "target_configuration": grouped.get("target_configuration", {}),
                 "evidence_maturity": grouped.get("evidence_maturity"),
                 "samples": metrics.get("samples"),
                 "accuracy": metrics.get("accuracy"),
@@ -628,7 +720,9 @@ def render_flutter_report(
     checks: list[dict[str, Any]],
     android_records: list[dict[str, Any]],
     device_register: dict[str, Any],
+    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> str:
+    report_version = normalize_report_version(report_version)
     sections = [
         "## Android anti-uninstall",
         "",
@@ -638,7 +732,7 @@ def render_flutter_report(
         "",
         "## Phase 4 latency",
         "",
-        "The progress-report status is the `pkm_progress_v5_demo` checkpoint. Final readiness remains a separate retained gate.",
+        f"The progress-report status is the `pkm_progress_{report_version}_demo` checkpoint. Final readiness remains a separate retained gate.",
         "",
         "| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |",
         "|---|---|---:|---:|---:|---|---:|",
@@ -728,9 +822,31 @@ def render_model_report(
     projection: dict[str, Any],
     grouped: dict[str, Any],
     checks: list[dict[str, Any]],
+    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> str:
+    report_version = normalize_report_version(report_version)
+    progress_gate_name = f"pkm_progress_{report_version}"
+    progress_gate_label = f"PKM {report_version}"
     grouped_aggregate = grouped.get("aggregate", {})
     projection_aggregate = projection.get("aggregate", {})
+    selected_target_configuration = (
+        grouped_aggregate.get("target_configuration")
+        or projection_aggregate.get("target_configuration", {})
+    )
+    if not selected_target_configuration:
+        target_filename = "targets.json" if report_version == "v5" else f"targets-{report_version}.json"
+        try:
+            selected_target_configuration = json.loads(
+                (TARGET_CONFIG_ROOT / target_filename).read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            selected_target_configuration = {}
+    target_id = selected_target_configuration.get("detection_progress_target_id")
+    if not target_id:
+        target_id = selected_target_configuration.get(
+            "target_id",
+            f"{report_version}-detection-pkm",
+        )
     artifact_contract = projection_aggregate.get("artifact_contract", {})
     ablations = grouped_aggregate.get("ablations", {})
     slices = grouped_aggregate.get("slices", {})
@@ -745,11 +861,13 @@ def render_model_report(
     scope_exclusions = grouped_aggregate.get("scope_exclusions", {})
     limitations = grouped_aggregate.get("limitations", {})
     sections = [
+        f"Target configuration: `{report_version}` (`{target_id}`).",
+        "",
         "## Runtime projection",
         "",
-        "| Status | Accuracy | Precision | Recall | F1 | False-positive rate | Developmental | PKM v5 |",
+        f"| Status | Accuracy | Precision | Recall | F1 | False-positive rate | Developmental | {progress_gate_label} |",
         "|---|---:|---:|---:|---:|---:|---|---|",
-        f"| {projection.get('status', 'pending')} | {projection_aggregate.get('accuracy', 'not generated')} | {projection_aggregate.get('precision', 'not generated')} | {projection_aggregate.get('recall', 'not generated')} | {projection_aggregate.get('f1_score', 'not generated')} | {projection_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(projection_aggregate, 'developmental_checkpoint')} | {named_gate_value(projection_aggregate, 'pkm_progress_v5')} |",
+        f"| {projection.get('status', 'pending')} | {projection_aggregate.get('accuracy', 'not generated')} | {projection_aggregate.get('precision', 'not generated')} | {projection_aggregate.get('recall', 'not generated')} | {projection_aggregate.get('f1_score', 'not generated')} | {projection_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(projection_aggregate, 'developmental_checkpoint')} | {named_gate_value(projection_aggregate, progress_gate_name)} |",
         "",
         "## Active Hybrid artifact contract",
         "",
@@ -759,9 +877,9 @@ def render_model_report(
         "",
         "## Text-and-domain grouped candidate",
         "",
-        "| Status | Evidence maturity | Test rows | Accuracy | Precision | Recall | F1 | FPR | Developmental | PKM v5 | Split audit | ONNX parity |",
+        f"| Status | Evidence maturity | Test rows | Accuracy | Precision | Recall | F1 | FPR | Developmental | {progress_gate_label} | Split audit | ONNX parity |",
         "|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---|",
-        f"| {grouped.get('status', 'pending')} | {grouped_aggregate.get('evidence_maturity', 'not generated')} | {grouped_aggregate.get('samples', 'not generated')} | {grouped_aggregate.get('accuracy', 'not generated')} | {grouped_aggregate.get('precision', 'not generated')} | {grouped_aggregate.get('recall', 'not generated')} | {grouped_aggregate.get('f1_score', 'not generated')} | {grouped_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(grouped_aggregate, 'developmental_checkpoint')} | {named_gate_value(grouped_aggregate, 'pkm_progress_v5')} | {grouped_aggregate.get('split_audit_passed', 'not generated')} | {grouped_aggregate.get('onnx_parity', 'not generated')} |",
+        f"| {grouped.get('status', 'pending')} | {grouped_aggregate.get('evidence_maturity', 'not generated')} | {grouped_aggregate.get('samples', 'not generated')} | {grouped_aggregate.get('accuracy', 'not generated')} | {grouped_aggregate.get('precision', 'not generated')} | {grouped_aggregate.get('recall', 'not generated')} | {grouped_aggregate.get('f1_score', 'not generated')} | {grouped_aggregate.get('false_positive_rate', 'not generated')} | {named_gate_value(grouped_aggregate, 'developmental_checkpoint')} | {named_gate_value(grouped_aggregate, progress_gate_name)} | {grouped_aggregate.get('split_audit_passed', 'not generated')} | {grouped_aggregate.get('onnx_parity', 'not generated')} |",
         "",
         "The text-and-domain grouped candidate is a separate research artifact. It does",
         "not replace the active client model automatically.",
@@ -962,6 +1080,11 @@ def main() -> int:
     parser.add_argument("--run-model-tests", action="store_true")
     parser.add_argument("--run-code-tests", action="store_true")
     parser.add_argument(
+        "--report-version",
+        default=DEFAULT_REPORT_VERSION,
+        help="Progress-report version whose target config should be used (default: v5).",
+    )
+    parser.add_argument(
         "--component",
         action="append",
         choices=sorted(COMPONENT_REPORT_KEYS),
@@ -975,14 +1098,22 @@ def main() -> int:
         parser.error("--component requires --run-code-tests or --run-model-tests")
 
     workspace_root = args.workspace_root.resolve()
+    try:
+        target_config_path, target_configuration = resolve_target_config(
+            workspace_root,
+            args.report_version,
+        )
+        report_version = normalize_report_version(args.report_version)
+    except ValueError as error:
+        parser.error(str(error))
     android_records, android_errors, android_ledger_exists = read_android_evidence()
     if android_errors:
         android_records = []
     android = read_android_summary()
-    latency = read_latency_summary()
+    latency = read_latency_summary(target_configuration, report_version)
     device_register = read_device_register()
     if args.run_model_replay:
-        projection, grouped = run_model_replay(workspace_root)
+        projection, grouped = run_model_replay(workspace_root, target_config_path, report_version)
     else:
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
@@ -997,7 +1128,14 @@ def main() -> int:
     selected_reports = report_keys_for_components(args.component)
     reports: dict[str, str] = {}
     if "flutter" in selected_reports:
-        reports["flutter"] = render_flutter_report(android, latency, checks, android_records, device_register)
+        reports["flutter"] = render_flutter_report(
+            android,
+            latency,
+            checks,
+            android_records,
+            device_register,
+            report_version,
+        )
     if "golang" in selected_reports:
         reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, COMPONENT_CHECK_NAMES["backend"], "backend_unit")
     if "next" in selected_reports:
@@ -1005,7 +1143,7 @@ def main() -> int:
     if "browser-extention" in selected_reports:
         reports["browser-extention"] = render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit")
     if "model" in selected_reports:
-        reports["model"] = render_model_report(projection, grouped, model_checks)
+        reports["model"] = render_model_report(projection, grouped, model_checks, report_version)
     outputs: dict[str, str] = {}
     for technology, content in reports.items():
         output = args.output_dir / REPORT_PATHS[technology]

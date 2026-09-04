@@ -15,9 +15,13 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 ## Phase 4 latency
 
-| Status | Groups | Passed groups |
-|---|---:|---:|
-| pending | 0 | 0 |
+The progress-report status is the `pkm_progress_v5_demo` checkpoint. Final readiness remains a separate retained gate.
+
+| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |
+|---|---|---:|---:|---:|---|---:|
+| latency_feasibility | passed | 30 | 1 | 1 | True | 0 |
+| pkm_progress_v5_demo | passed | 30 | 1 | 1 | True | 0 |
+| final_readiness | pending | 30 | 1 | 1 | False | 11 |
 
 ## Android device evidence detail
 
@@ -55,7 +59,7 @@ Service and cross-OEM interpretation are maintained in
 ## Windows extension–model runtime
 
 | Status | Browser | Build | Scenarios | Passed | Reason | Model version | Ruleset version | Intervention samples |
-|---|---|---|---:|---:|---|---|---|---:|
+|---|---|---|---:|---:|---|---|---|---|
 | pending | — | — | — | — | Use --include-windows-e2e on an approved Windows VM or runner. | — | — | — |
 
 | Artifact | SHA-256 |

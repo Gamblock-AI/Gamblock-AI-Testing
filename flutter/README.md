@@ -6,8 +6,11 @@ production tests remain in `../gamblock_ai_apps/` in the umbrella workspace.
 
 Android device runs are manual and disposable. Use the runbook in
 [`../docs/ai/android-anti-uninstall-testing.md`](../docs/ai/android-anti-uninstall-testing.md)
-for the matrix, Firebase Device Streaming workflow, privacy boundary, and
-evidence promotion rules. The cross-OEM problem and current device/service
+for the anti-uninstall matrix and Firebase Device Streaming workflow. Use the
+shared [new-device checklist](../docs/ai/android-device-run-checklist.md)
+before any anti-uninstall or latency run, and the dedicated
+[Phase 4 latency runbook](../docs/ai/android-phase4-latency-testing.md) for
+Research release timing. The cross-OEM problem and current device/service
 provenance are documented in
 [`../docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).
 
@@ -20,7 +23,19 @@ python3 flutter/scripts/validate_android_tamper_report.py private/android-tamper
 ```
 
 Only validated aggregate records may be promoted to the shared
-`flutter/evidence/ledger/`; raw device output remains local.
+`flutter/evidence/ledger/`. Public ledgers are grouped by the safe
+`device_alias` used in each record:
+
+```text
+flutter/evidence/ledger/<device_alias>/android-tamper.jsonl
+flutter/evidence/ledger/<device_alias>/phase4-latency.jsonl
+```
+
+Raw device output remains local. Keep one device alias per folder and do not
+use display names, serial numbers, or other machine-specific identifiers as
+folder names. The promoter merges new runs atomically into the existing
+device file and rejects duplicate `sample_id` values or a folder/record alias
+mismatch; never overwrite a ledger manually.
 
 ## Phase 4 latency promotion
 
@@ -31,21 +46,25 @@ data:
 ```sh
 python3 flutter/scripts/promote_evidence.py phase4-latency \
   --input flutter/private/phase4-latency.jsonl \
-  --output flutter/evidence/ledger/phase4-latency.jsonl
+  --output flutter/evidence/ledger/DEVICE_ALIAS/phase4-latency.jsonl
 ```
 
 The latency contract deliberately has three levels. The **feasibility** gate
 accepts one homogeneous group with at least 30 successful samples, no failure,
-and p95 below 200 ms. The **PKM v5 progress-demo** checkpoint is smaller and
-matches the demonstration artifact: `researchRelease` on Android + Chrome,
-scenario `warm_foreground_online`, with the same 30-sample/no-failure/p95
-requirements. The **final-readiness** gate remains Android/Windows ×
+and p95 below 200 ms. The selected report version's progress-demo checkpoint
+is smaller and matches the demonstration artifact: `researchRelease` on
+Android + Chrome, scenario `warm_foreground_online`, with the same
+30-sample/no-failure/p95 requirements. For v5 this is the **PKM v5
+progress-demo**; a later active report selects its matching versioned gate.
+The **final-readiness** gate remains Android/Windows ×
 Chrome/Edge/Opera × profile/release under the same per-cell criteria. Debug
 builds are diagnostic only and cannot satisfy the progress-demo or final gate.
 
 A source-side Android measurement is not canonical runtime evidence until its
 privacy-safe aggregate records are promoted and validated. The canonical
-report renders all three checkpoints separately.
+report renders all three checkpoints separately. The device register remains
+anti-uninstall-scoped, so a latency-only pass does not remove a device from
+the anti-uninstall retest queue.
 
 ## Future structured usability study
 

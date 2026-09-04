@@ -147,6 +147,27 @@ class PublicEvidenceTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             PROMOTER.promote([record(url="https://never-record.invalid")], {}, VALIDATOR)
 
+    def test_promoter_merges_device_ledger_without_overwriting(self):
+        merged = PROMOTER.merge_records(
+            [record(sample_id="sample_old")],
+            [record(sample_id="sample_new")],
+        )
+
+        self.assertEqual(["sample_new", "sample_old"], [item["sample_id"] for item in merged])
+
+    def test_promoter_rejects_duplicate_across_existing_and_incoming(self):
+        with self.assertRaisesRegex(ValueError, "duplicate sample_id"):
+            PROMOTER.merge_records(
+                [record(sample_id="sample_1")],
+                [record(sample_id="sample_1")],
+            )
+
+    def test_promoter_requires_device_folder_to_match_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "wrong_device" / "android-tamper.jsonl"
+            with self.assertRaisesRegex(ValueError, "must match"):
+                PROMOTER.validate_device_output([record()], output, "android-tamper")
+
     def test_latency_promoter_rejects_browsing_fields(self):
         latency = load("phase4_latency", ROOT / "flutter/scripts/phase4_latency_report.py")
         record = {

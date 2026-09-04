@@ -7,6 +7,8 @@ The cross-OEM problem, Firebase Test Lab service context, and current device
 status are documented in [`android-anti-uninstall-context.md`](android-anti-uninstall-context.md).
 Safe device/provenance metadata is maintained in
 [`flutter/config/device-register.json`](../../flutter/config/device-register.json).
+Before a new handset or Firebase session, follow the shared
+[Android device run checklist](android-device-run-checklist.md).
 
 ## Test contract
 
@@ -106,12 +108,21 @@ Validate and promote only aggregate records:
 python3 flutter/scripts/validate_android_tamper_report.py flutter/private/android-tamper.jsonl
 python3 flutter/scripts/promote_evidence.py android-tamper \
   --input flutter/private/android-tamper.jsonl \
-  --output flutter/evidence/ledger/android-tamper.jsonl
+  --output flutter/evidence/ledger/DEVICE_ALIAS/android-tamper.jsonl
 ```
 
 The promoter rejects raw browsing/account fields, device serials, local paths,
 images, duplicate samples, and malformed visual hashes. It never copies local
-screenshots into the repository.
+screenshots into the repository. It merges into an existing per-device ledger
+without overwriting prior runs and rejects duplicate sample IDs or a folder
+alias that does not match the records.
+
+## Phase 4 latency
+
+The Research release latency procedure is maintained separately in
+[`android-phase4-latency-testing.md`](android-phase4-latency-testing.md). Use the
+shared [new-device checklist](android-device-run-checklist.md) before starting
+any latency or anti-uninstall run.
 
 ## Interpretation limits
 

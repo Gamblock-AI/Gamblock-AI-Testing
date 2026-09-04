@@ -14,6 +14,7 @@ from typing import Any
 
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
+SAFE_LABEL_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
 
 def load_validator(name: str = "validate_android_tamper_report.py"):
@@ -108,6 +109,50 @@ def promote_latency(records: list[dict[str, Any]], validator: Any) -> list[dict[
     return sorted(promoted, key=lambda record: (record["run_id"], record["sample_id"]))
 
 
+def merge_records(
+    existing: list[dict[str, Any]],
+    incoming: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge a device ledger without silently replacing existing samples."""
+
+    merged: dict[str, dict[str, Any]] = {}
+    for record in [*existing, *incoming]:
+        sample_id = record.get("sample_id")
+        if not isinstance(sample_id, str) or not sample_id:
+            raise ValueError("all promoted records require a non-empty sample_id")
+        if sample_id in merged:
+            raise ValueError(f"duplicate sample_id across existing and incoming evidence: {sample_id!r}")
+        merged[sample_id] = record
+    return sorted(merged.values(), key=lambda record: (record["run_id"], record["sample_id"]))
+
+
+def validate_device_output(records: list[dict[str, Any]], output: Path, kind: str) -> None:
+    """Require one safe device folder and the matching ledger filename."""
+
+    expected_filename = f"{kind}.jsonl"
+    if output.name != expected_filename:
+        raise ValueError(f"--output must end with {expected_filename}")
+    device_alias = output.parent.name
+    if SAFE_LABEL_PATTERN.fullmatch(device_alias) is None:
+        raise ValueError("--output parent must be a safe device_alias folder")
+    aliases = {record.get("device_alias") for record in records}
+    if aliases != {device_alias}:
+        raise ValueError(
+            f"--output folder {device_alias!r} must match all record device_alias values {sorted(aliases)!r}"
+        )
+
+
+def load_existing(path: Path, validator: Any) -> list[dict[str, Any]]:
+    """Load an existing ledger and refuse to build on invalid public data."""
+
+    if not path.exists():
+        return []
+    existing, errors = validator.load_records([path])
+    if errors:
+        raise ValueError("existing ledger is invalid: " + "; ".join(errors))
+    return existing
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("kind", choices=("android-tamper", "phase4-latency"))
@@ -133,14 +178,20 @@ def main() -> int:
                 raise ValueError("phase4-latency does not accept visual evidence")
             validator = load_validator("phase4_latency_report.py")
             records = promote_latency(source_records, validator)
+        validate_device_output(records, args.output, args.kind)
+        existing = load_existing(args.output, validator)
+        records = merge_records(existing, records)
+        validate_device_output(records, args.output, args.kind)
     except (OSError, ValueError, TypeError) as error:
         print(f"evidence promotion failed: {error}", file=sys.stderr)
         return 1
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as destination:
+    temporary = args.output.with_name(f".{args.output.name}.tmp")
+    with temporary.open("w", encoding="utf-8") as destination:
         for record in records:
             destination.write(json.dumps(record, sort_keys=True) + "\n")
+    temporary.replace(args.output)
     print(json.dumps({"output": str(args.output), "samples": len(records)}, sort_keys=True))
     return 0
 

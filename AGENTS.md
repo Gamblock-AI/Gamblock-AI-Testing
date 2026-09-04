@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-04.4`
+Context version: `2026-09-04.5`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -14,13 +14,15 @@ receipt is not a second report and is not committed by default.
 - `flutter/config/device-matrix.json` defines required Android device and
   scenario coverage.
 - `<technology>/evidence/ledger/` contains public, aggregate-only evidence for
-  that technology.
+  that technology. Flutter/Android runtime ledgers are grouped below
+  `flutter/evidence/ledger/<device_alias>/`.
 - Each technology's `<technology>/report.md` is its only human-readable
   canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
 - The umbrella `../context/progress-targets.md` is the versioned target
-  registry. `docs/config/targets.json` remains the active v5 machine
-  configuration; proposed future targets must not be copied into it early.
+  registry. `docs/config/targets.json` remains the v5 machine configuration;
+  later versions use separate `targets-vN.json` files and an explicit runner
+  selector only after the matching report and registry target are active.
 - `docs/ai/pkm-usability-testing.md` defines the future structured task and
   SUS protocol; it contains no participant results or raw study material.
 - Model replay is the exception to the runtime-ledger layout: its validated,
@@ -32,7 +34,9 @@ receipt is not a second report and is not committed by default.
 ## Directory ownership
 
 - `flutter/` owns Flutter/Android anti-uninstall, Android tamper, and Phase 4
-  latency harnesses plus their tests.
+  latency harnesses plus their tests. The anti-uninstall matrix, Phase 4
+  latency procedure, and shared new-device checklist are separate runbooks;
+  all runtime ledgers remain grouped by stable device alias.
 - `golang/`, `next/`, and `browser-extention/` own the test entrypoint documentation for
   the Go backend, Next.js website, and browser extension respectively. Their
   source and production tests remain in the component repositories.

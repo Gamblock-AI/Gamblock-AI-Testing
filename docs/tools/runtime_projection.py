@@ -28,15 +28,29 @@ WORKSPACE_ROOT = TESTING_ROOT.parent
 MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
 APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"
 TARGETS_PATH = TESTING_ROOT / "docs/config/targets.json"
+REPORT_VERSION = "v5"
 
 
-def configure_workspace(workspace_root: Path) -> None:
+def configure_workspace(
+    workspace_root: Path,
+    targets_path: Path | None = None,
+) -> None:
     """Point the evaluator at an umbrella or standalone sibling workspace."""
 
-    global WORKSPACE_ROOT, MODEL_ROOT, APP_ROOT
+    global WORKSPACE_ROOT, MODEL_ROOT, APP_ROOT, TARGETS_PATH, REPORT_VERSION
     WORKSPACE_ROOT = workspace_root.resolve()
     MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
     APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"
+    TARGETS_PATH = (
+        targets_path.resolve()
+        if targets_path is not None
+        else TESTING_ROOT / "docs/config/targets.json"
+    )
+    try:
+        configuration = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"target configuration could not be read: {TARGETS_PATH}: {error}") from error
+    REPORT_VERSION = str(configuration.get("report_version", "v5"))
 TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+")
 RULE_SEPARATOR_RE = re.compile(r"[^a-z0-9_]+")
 
@@ -318,6 +332,11 @@ def build_report(
     rules_path: Path | None = None,
     fixtures_path: Path | None = None,
 ) -> dict[str, Any]:
+    target_configuration = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
+    report_version = str(target_configuration.get("report_version", REPORT_VERSION))
+    target_id = str(
+        target_configuration.get("detection_progress_target_id", f"{report_version}-detection-pkm")
+    )
     model_path = model_path or APP_ROOT / "assets/protection/gamblock-lr-v2.json"
     rules_path = rules_path or APP_ROOT / "assets/protection/gamblock-rules-v2.json"
     fixtures_path = fixtures_path or APP_ROOT / "assets/protection/hybrid-v2-fixtures.json"
@@ -371,6 +390,12 @@ def build_report(
         "schema_version": 1,
         "report_kind": "deployed_hybrid_projection",
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "report_version": report_version,
+        "target_configuration": {
+            "progress_gate": f"pkm_progress_{report_version}",
+            "target_id": target_id,
+            "path_class": "versioned_testing_config",
+        },
         "evidence_maturity": "provisional",
         "projection": {
             "route": "browser_extension DOM snapshot -> bounded loopback payload -> Windows Hybrid-v2",
@@ -416,8 +441,13 @@ def main() -> int:
     parser.add_argument("--model", type=Path, help="Candidate Hybrid-v2 JSON model; defaults to the app artifact.")
     parser.add_argument("--rules", type=Path, help="Candidate Hybrid-v2 JSON rules; defaults to the app artifact.")
     parser.add_argument("--fixtures", type=Path, help="Fixture JSON; defaults to the app fixture contract.")
+    parser.add_argument(
+        "--targets-config",
+        type=Path,
+        help="Versioned target configuration; defaults to the active v5 config.",
+    )
     args = parser.parse_args()
-    configure_workspace(args.workspace_root)
+    configure_workspace(args.workspace_root, args.targets_config)
     report = build_report(args.model, args.rules, args.fixtures)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

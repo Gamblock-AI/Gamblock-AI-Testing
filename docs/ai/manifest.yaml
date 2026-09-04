@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-04.4"
+context_version: "2026-09-04.5"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -42,9 +42,12 @@ required_context:
   - docs/ai/README.md
   - docs/ai/android-anti-uninstall-testing.md
   - docs/ai/android-anti-uninstall-context.md
+  - docs/ai/android-device-run-checklist.md
+  - docs/ai/android-phase4-latency-testing.md
   - docs/ai/testing-run-receipt.md
   - docs/ai/pkm-usability-testing.md
   - docs/ai/manifest.yaml
+  - docs/config/targets-v6.json
   - docs/config/targets.json
   - docs/testing-index.md
   - docs/tools/README.md
@@ -57,7 +60,7 @@ required_context:
   - docs/tools/tests/test_run_evaluation.py
   - flutter/config/device-matrix.json
   - flutter/config/device-register.json
-  - flutter/evidence/ledger/android-tamper.jsonl
+  - flutter/evidence/ledger/README.md
   - flutter/README.md
   - flutter/report.md
   - flutter/scripts/phase4_latency_report.py

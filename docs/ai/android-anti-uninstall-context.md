@@ -19,9 +19,9 @@ failure from an OS action that the application is not allowed to resist.
 
 ## Evidence and device status
 
-Only validated records in
-[`flutter/evidence/ledger/android-tamper.jsonl`](../../flutter/evidence/ledger/android-tamper.jsonl)
-are runtime evidence. The generated
+Only validated records in the per-device
+`flutter/evidence/ledger/<device_alias>/android-tamper.jsonl` ledgers are
+anti-uninstall runtime evidence. The generated
 [`flutter/report.md`](../../flutter/report.md) renders the detailed scenario
 results from that ledger.
 
@@ -29,15 +29,23 @@ The public device register at
 [`flutter/config/device-register.json`](../../flutter/config/device-register.json)
 contains safe device and provenance metadata. Its `pending_retest` entries
 are not evidence and do not contribute to coverage, sample counts, or pass
-rates.
+rates. The register is currently scoped to anti-uninstall provenance; a
+latency-only run does not change an entry's anti-uninstall status. Use the
+[shared Android device run checklist](android-device-run-checklist.md) for
+alias selection, release-artifact provenance, and cleanup.
 
 Current interpretation:
 
-- Google Pixel 9 Pro Remote is the only device with valid evidence. Its seven
-  scenario records and observed outcomes are detailed in `flutter/report.md`.
-- Redmi 12C is in the retest queue. Its previous informal observation is
-  intentionally not recorded as pass/fail evidence; result fields remain
-  empty until a new validated run is promoted.
+- Google Pixel 9 Pro Remote is the only device with valid **anti-uninstall**
+  evidence. Its seven scenario records and observed outcomes are detailed in
+  `flutter/report.md`.
+- Redmi 12C (`redmi_12c_local_01`) now has a validated Phase 4 latency run for
+  the Research release in the per-device
+  `flutter/evidence/ledger/<device_alias>/phase4-latency.jsonl` ledger and is
+  documented in `flutter/report.md`. This proves only the Android/Chrome/release latency
+  group and the user-visible Pattern Interrupt demonstration. The device is
+  still in the anti-uninstall retest queue because no complete Android
+  tamper-scenario ledger has been promoted for it.
 - Samsung Galaxy A14 had a device-reservation attempt that did not complete.
   It is an operational setup note only, not a test result.
 - Samsung, Xiaomi/Redmi, OPPO/Realme, and Vivo coverage remains incomplete

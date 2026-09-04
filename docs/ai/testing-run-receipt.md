@@ -51,9 +51,17 @@ Validation and publication
 ```
 
 The public-file list must include the canonical report and any promoted
-technology ledger that changed. It must not include raw URLs, domains, DOM,
+technology ledger that changed. For Android runtime evidence, name the
+per-device ledger path under `flutter/evidence/ledger/<device_alias>/` and
+state whether it was appended to an existing device file. It must not include raw URLs, domains, DOM,
 browsing history, screenshots, ADB/logcat traces, serial numbers, credentials,
 participant data, or raw command output.
+
+For a new Android device, keep the release-artifact provenance (source commit,
+APK version and digest, signing-certificate fingerprint, Android API, and
+browser version) in the private/local portion of the receipt. Only the
+allowlisted aggregate labels, outcomes, timings, state flags, and approved
+hashes may enter the public ledger.
 
 Private artifacts may be described by their path class and purpose, but their
 contents must not be pasted into the response. Temporary model replay outputs
