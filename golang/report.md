@@ -12,7 +12,7 @@ This report covers the Go backend component checks.
 | Check | Status |
 |---|---|
 | backend_unit | passed |
-| backend_integration | pending |
+| backend_integration | passed |
 
 ## Interpretation limits
 
