@@ -70,6 +70,11 @@ they share device identity, release-artifact, privacy, and cleanup rules.
       `:protection` process are all healthy.
 - [ ] Run `capture-before` immediately before one scenario using fresh
       `run_id`/`sample_id` values and `--build-mode release`.
+- [ ] Treat the native protection service, Device Admin, and Accessibility
+      state as part of the anti-uninstall sample. Capture their before-state
+      from the healthy baseline and their after-state together with package
+      presence; record recovery timing for process-kill, force-stop, clear-data,
+      and reboot scenarios.
 - [ ] Perform exactly one visible system action. Do not rely on AOSP labels or
       fixed coordinates; follow the OEM's displayed flow.
 - [ ] For Redmi/Xiaomi Settings uninstall, record the complete chain:

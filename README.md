@@ -14,7 +14,7 @@ Component repositories link here instead of copying test results.
 
 | Path | Responsibility |
 |---|---|
-| `docs/config/targets.json` | Single active detection/artifact/latency target contract |
+| `docs/config/targets.json` | Single active detection/artifact/latency/client-runtime target contract |
 | `../context/progress-targets.md` | Current target contract and evidence boundary |
 | `docs/testing-index.md` | Link-only index of canonical reports |
 | `docs/tools/` | Cross-system runner, validators, and tooling tests |
@@ -37,7 +37,9 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 ```
 
 The evaluation runner records missing physical-device and Windows evidence as
-`pending`; it never upgrades documentation-only claims to runtime proof.
+`pending`; it never upgrades documentation-only claims to runtime proof. Client
+runtime status is read from validated platform/browser/case evidence cells, not
+from component unit-check output.
 
 The two pending Flutter client-runtime evaluations use platform/browser/case
 subfolders under `flutter/evidence/client-runtime/`. See

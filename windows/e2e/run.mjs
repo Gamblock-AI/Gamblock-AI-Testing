@@ -8,6 +8,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { chromium } from 'playwright';
 
+// Legacy Chrome-only development smoke harness. Its result is not the
+// canonical cross_platform_browser_support_regression evidence contract.
 const execFileAsync = promisify(execFile);
 const PIPE_NAME = '\\\\.\\pipe\\GamblockAIProtection';
 const CHECK_NAME = 'windows_extension_model_e2e';

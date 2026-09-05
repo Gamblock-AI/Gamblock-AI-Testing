@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-05.1"
+context_version: "2026-09-05.2"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -52,12 +52,14 @@ required_context:
   - docs/testing-index.md
   - docs/tools/README.md
   - docs/tools/run_evaluation.py
+  - docs/tools/client_runtime_evidence.py
   - docs/tools/runtime_projection.py
   - docs/tools/verify-ai-context.sh
   - docs/tools/verify_public_evidence.py
   - docs/tools/tests/test_public_evidence.py
   - docs/tools/tests/test_runtime_projection.py
   - docs/tools/tests/test_run_evaluation.py
+  - docs/tools/tests/test_client_runtime_evidence.py
   - flutter/config/device-matrix.json
   - flutter/config/device-register.json
   - flutter/evidence/ledger/README.md

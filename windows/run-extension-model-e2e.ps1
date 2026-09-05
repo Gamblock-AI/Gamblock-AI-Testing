@@ -6,6 +6,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Legacy Chrome-only development smoke helper. It cannot populate the
+# cross_platform_browser_support_regression evidence matrix.
 $e2eRoot = Join-Path $PSScriptRoot 'e2e'
 $runner = Join-Path $e2eRoot 'run.mjs'
 

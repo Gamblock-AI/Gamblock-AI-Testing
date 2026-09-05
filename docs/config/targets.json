@@ -8,13 +8,7 @@
       "precision_min": 0.90,
       "recall_min": 0.90,
       "f1_score_min": 0.90,
-      "false_positive_rate_max": 0.05,
-      "evidence": {
-        "root": "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation",
-        "path_template": "<platform>/<case>",
-        "required_case_directories": ["gambling", "non_gambling"],
-        "aggregate_files": ["summary.json", "samples.jsonl"]
-      }
+      "false_positive_rate_max": 0.05
     },
     "progress_gate": {
       "accuracy_min": 0.90,
@@ -49,7 +43,7 @@
   "client_runtime": {
     "flutter_local_model_balanced_evaluation": {
       "required_platforms": ["android", "windows"],
-      "required_product_flavors": ["research"],
+      "required_devices": {"android": 1, "windows": 1},
       "required_build_modes": ["release"],
       "samples_per_class_per_platform": 50,
       "classes": ["gambling", "non_gambling"],
@@ -57,9 +51,29 @@
       "precision_min": 0.90,
       "recall_min": 0.90,
       "f1_score_min": 0.90,
-      "false_positive_rate_max": 0.05
+      "false_positive_rate_max": 0.05,
+      "gate_name": "flutter_local_model_runtime_gate",
+      "evaluation_scope": "deployed_hybrid_artifact",
+      "required_components": ["rules", "url_features", "dom_text_features", "logistic_regression"],
+      "required_artifacts_by_platform": {
+        "android": {
+          "product_flavor": "research",
+          "artifact": "researchRelease"
+        },
+        "windows": {
+          "product_flavor": "pilot",
+          "artifact": "windows-pilot-release"
+        }
+      },
+      "evidence": {
+        "root": "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation",
+        "path_template": "<platform>/<case>",
+        "required_case_directories": ["gambling", "non_gambling"],
+        "aggregate_files": ["summary.json", "samples.jsonl"]
+      }
     },
     "cross_platform_browser_support_regression": {
+      "required_platforms": ["android", "windows"],
       "required_devices": {"android": 1, "windows": 1},
       "required_build_modes": ["release"],
       "samples_per_class_per_browser": 5,
@@ -71,6 +85,16 @@
       "expected_outcomes": {
         "gambling": "intervention",
         "non_gambling": "allow"
+      },
+      "required_artifacts_by_platform": {
+        "android": {
+          "product_flavor": "research",
+          "artifact": "researchRelease"
+        },
+        "windows": {
+          "product_flavor": "pilot",
+          "artifact": "windows-pilot-release"
+        }
       },
       "evidence": {
         "root": "flutter/evidence/client-runtime/cross_platform_browser_support_regression",

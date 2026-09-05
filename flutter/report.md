@@ -9,13 +9,14 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 ## Android anti-uninstall
 
-| Status | Interpretation | Samples | Groups | OEM families | Scenarios | Coverage complete |
-|---|---|---:|---:|---:|---:|---|
-| failed | Android/OEM Settings limitation; not interpreted as a Flutter code defect. | 18 | 17 | 2 | 10 | False |
+| Status | Interpretation | Samples (all) | Release samples | Diagnostic samples | Release OEM families | Release scenarios | Release coverage complete |
+|---|---|---:|---:|---:|---:|---:|---|
+| failed | Android/OEM Settings limitation; not interpreted as a Flutter code defect. | 18 | 11 | 7 | 1 | 10 | False |
 
 ## Android anti-uninstall interpretation
 
 The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.
+Only `release` records count toward the acceptance device/scenario matrix. Debug or profile records remain diagnostic context and cannot complete release coverage or promote an acceptance claim.
 The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.
 Every anti-uninstall sample also records the Android runtime state needed to interpret the system action: native protection service, Device Admin, Accessibility, package presence, and recovery timing where applicable. These runtime checks are part of the anti-uninstall evidence and are not a separate component check.
 
@@ -56,7 +57,6 @@ blocked uninstall assertion.
 | Redmi 12C | tamper_redmi12c_release_20260905_fix / redmi_settings_uninstall_fix_01 | xiaomi_redmi | 34 | release | local_physical_device | settings_uninstall | settings | uninstall / uninstall | blocked → failed | none | true → false | true → false | true → false | false | — | failed |
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_setup_01 | xiaomi_redmi | 34 | release | local_physical_device | setup | none | none / none | no_tamper → no_tamper | none | true → true | true → true | true → true | true | — | passed |
 
-
 ## Android testing context
 
 Service and cross-OEM interpretation are maintained in
@@ -66,7 +66,7 @@ Service and cross-OEM interpretation are maintained in
 
 | Status | Platforms | Samples per platform | Build | Gate | Reason |
 |---|---|---:|---|---|---|
-| pending | Android + Windows | 50 gambling + 50 non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | No model runtime evidence has been executed. |
+| pending | Android + Windows | 50 gambling + 50 non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | No complete client-runtime evidence root exists. |
 
 This is a balanced local-classifier evaluation contract. It is not satisfied by the existing 30-sample latency evidence.
 
@@ -74,7 +74,7 @@ This is a balanced local-classifier evaluation contract. It is not satisfied by 
 
 | Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |
 |---|---:|---:|---|---|---:|---|---|
-| pending | 1 | 1 | Chrome, Edge, Samsung Internet, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | No multi-browser runtime evidence has been executed. |
+| pending | 1 | 1 | Chrome, Edge, Samsung Internet, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | No complete client-runtime evidence root exists. |
 
 Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
 
@@ -86,8 +86,6 @@ Each browser is evaluated for allow on non-gambling fixtures and intervention on
 | testing_flutter_unit | passed |
 | client_python_contract_unit | passed |
 | flutter_pattern_interrupt_unit | passed |
-| flutter_local_model_balanced_evaluation | pending |
-| cross_platform_browser_support_regression | pending |
 
 ## Supplemental explicit verification
 

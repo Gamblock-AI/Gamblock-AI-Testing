@@ -1,7 +1,7 @@
 # Cross-platform browser support regression
 
 This contract verifies the local browser-to-protection chain on one Android
-device and one Windows VM across the supported browser matrix:
+device and one Windows VM across the required evaluation-browser matrix:
 
 ```text
 passive extension/browser -> authenticated localhost WebSocket
@@ -12,7 +12,7 @@ The regression uses synthetic pages and aggregate-safe outcomes. It never
 visits a real gambling site and never sends browsing data to the backend or a
 cloud provider.
 
-## Required matrix
+## Required evaluation matrix
 
 | Platform | Device | Browsers | Per-browser fixtures |
 |---|---:|---|---:|
@@ -20,23 +20,29 @@ cloud provider.
 | Windows | 1 interactive VM | Chrome, Edge, Brave, Opera, Firefox | 5 non-gambling + 5 gambling |
 
 Expected outcomes are `allow` for non-gambling fixtures and `intervention` for
-gambling fixtures. This contract is separate from the multi-OEM Android
-anti-uninstall matrix and from latency measurement.
+gambling fixtures. These are required evaluation candidates, not a claim that
+all five browsers are currently supported by the native monitor. This contract
+is separate from the multi-OEM Android anti-uninstall matrix and from latency
+measurement.
 
 ## Prerequisites
 
 - Windows 11 x64 VM with an interactive desktop session;
 - administrator PowerShell;
 - Node.js 20+;
-- the five configured Windows browsers installed;
+- the five configured Windows browser candidates installed and identifiable by
+  executable/channel (`chrome`, `edge`, `brave`, `opera`, and `firefox`);
 - the `GamblockAIProtection` Windows service installed from the current app
   bundle and able to load the current protection assets;
 - Android device with the five configured Android browsers installed;
 - the model, app, extension, and testing checkouts at the workspace paths.
 
 The existing Playwright helper is a Chrome-only development harness and is not
-yet sufficient to satisfy this five-browser contract. A multi-browser runner,
-including the Firefox adapter, is still pending.
+yet sufficient to satisfy this five-browser contract. Playwright's bundled
+Chromium/Firefox engines are not evidence for branded Chrome, Edge, Brave, or
+Opera; the future runner must launch and record only the configured browser
+identity. A multi-browser runner, including the Firefox adapter, is still
+pending.
 
 ## Current status
 
@@ -51,6 +57,9 @@ When the multi-browser harness is available, install its dependencies from
 npm ci
 npx playwright install chromium firefox
 ```
+
+The command installs test engines only. It does not install the branded
+browser candidates required by the matrix.
 
 ## Future run
 

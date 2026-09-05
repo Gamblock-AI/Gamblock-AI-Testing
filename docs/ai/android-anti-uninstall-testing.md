@@ -31,6 +31,14 @@ The required OEM families and scenario list are versioned in
 [`flutter/config/device-matrix.json`](../../flutter/config/device-matrix.json). A missing
 scenario is `pending`, never `passed`.
 
+Runtime health is recorded inside every anti-uninstall sample rather than as
+a separate Android runtime test. The baseline and after-state must include the
+native protection service, Device Admin, Accessibility, package presence, and
+recovery timing when the scenario exercises a lifecycle interruption. These
+states explain whether the system action was attempted from a healthy runtime
+and whether the protection path recovered; they do not override the observed
+OEM system-UI outcome.
+
 ## Reproducible device workflow
 
 Use this sequence for every new handset or Firebase session. The commands use
@@ -243,7 +251,7 @@ From this repository, with the client checkout available as a sibling:
 ```
 
 The matrix script writes to a local staging path by default. Example manual
-flow:
+flow for acceptance evidence:
 
 ```sh
 ./flutter/scripts/run-android-tamper-matrix.sh capture-before \
@@ -254,7 +262,7 @@ flow:
   --device-alias pixel_9_pro_remote_01 \
   --oem-family aosp \
   --android-api 35 \
-  --build-mode debug
+  --build-mode release
 
 # Perform exactly one Settings/Launcher/Package Installer action manually.
 
@@ -272,6 +280,10 @@ flow:
   --grant-state none \
   --evidence-reference settings_uninstall_guard_01
 ```
+
+Debug/profile records may be retained locally for diagnosis, but they do not
+count toward the release acceptance matrix and must not be used to claim
+Research runtime coverage.
 
 Process-kill, force-stop, and reboot commands require
 `--acknowledge-disposable-device`. Do not invoke them on a personal or

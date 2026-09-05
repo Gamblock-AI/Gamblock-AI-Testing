@@ -46,7 +46,12 @@ Current interpretation:
   force-stop (after an explicit relaunch), and reboot all recovered the
   protection process. The Settings uninstall attempt removed the package after
   MIUI deactivated Device Admin (`removal_not_blocked`). The failure is retained
-  as evidence; it is not converted into a pass. Valid/invalid grant scenarios
+  as evidence; it is not converted into a pass. The two Settings records are
+  classified as an Android/OEM platform limitation, not as an unresolved
+  Flutter code defect: ordinary Android applications cannot veto the
+  user-initiated Device Admin deactivation in the MIUI Settings flow. The
+  `redmi_settings_uninstall_fix_01` name identifies a follow-up evidence run;
+  it does not claim that a code fix succeeded. Valid/invalid grant scenarios
   are still pending because no backend-issued grant/account flow was available
   during this run, so the device remains in the anti-uninstall retest queue.
 - Samsung Galaxy A14 had a device-reservation attempt that did not complete.
@@ -68,11 +73,12 @@ process during this transition.
 
 The Redmi 12C release evidence is an explicit example: the Settings flow
 reached “Nonaktifkan & uninstal” and the package was removed after confirmation.
-The failed result is retained as evidence. The prototype therefore claims
-detection, warning, audit, recovery, and approved-grant removal—not guaranteed
-uninstall prevention across all OEMs. Device Owner/MDM/kiosk provisioning would
-be a separate managed-device scope and is not part of the current APK test
-contract.
+The failed result is retained as evidence and labeled as an Android/OEM
+platform limitation in the generated report, not as a code-fix backlog item.
+The prototype therefore claims detection, warning, audit, recovery, and
+approved-grant removal—not guaranteed uninstall prevention across all OEMs.
+Device Owner/MDM/kiosk provisioning would be a separate managed-device scope
+and is not part of the current APK test contract.
 
 ## Firebase Test Lab service context
 

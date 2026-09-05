@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-05.1`
+Context version: `2026-09-05.2`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -132,7 +132,8 @@ not run automatically on push because they may consume quota.
 ## Publication boundary
 
 The repository is public. Only validated files under technology-owned
-`evidence/ledger/` folders, the matching canonical reports, and the
+`evidence/ledger/` folders, Flutter client-runtime evidence under
+`flutter/evidence/client-runtime/`, the matching canonical reports, and the
 allowlisted model aggregate evidence under `model/evidence/` may be committed
 as test results. Local staging files belong under ignored `<technology>/private/`
 or an external temporary directory. Model prediction tables, URLs, domains,

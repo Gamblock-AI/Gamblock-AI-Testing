@@ -38,8 +38,6 @@ COMPONENT_CHECK_NAMES = {
         "testing_flutter_unit",
         "client_python_contract_unit",
         "flutter_pattern_interrupt_unit",
-        "flutter_local_model_balanced_evaluation",
-        "cross_platform_browser_support_regression",
     },
     "backend": {"backend_unit", "backend_integration"},
     "website": {"website_unit", "website_e2e"},
@@ -190,9 +188,12 @@ def read_android_summary() -> dict[str, Any]:
         return {"name": "android_anti_uninstall", "status": "failed", "error_count": len(errors)}
     validator = load_module("android_tamper_validator", TESTING_ROOT / "flutter/scripts/validate_android_tamper_report.py")
     aggregate = validator.summarize(records)
+    acceptance_records = [record for record in records if record.get("build_mode") == "release"]
+    diagnostic_records = [record for record in records if record.get("build_mode") != "release"]
+    acceptance_aggregate = validator.summarize(acceptance_records)
     matrix = json.loads((TESTING_ROOT / "flutter/config/device-matrix.json").read_text(encoding="utf-8"))
-    observed_families = {record["oem_family"] for record in records}
-    observed_scenarios = {record["scenario"] for record in records}
+    observed_families = {record["oem_family"] for record in acceptance_records}
+    observed_scenarios = {record["scenario"] for record in acceptance_records}
     required_families = set(matrix["required_oem_families"])
     required_scenarios = set(matrix["scenarios"])
     coverage_complete = required_families <= observed_families and required_scenarios <= observed_scenarios
@@ -209,7 +210,7 @@ def read_android_summary() -> dict[str, Any]:
     )
     return {
         "name": "android_anti_uninstall",
-        "status": "passed" if aggregate["passed"] and coverage_complete else "partial" if aggregate["passed"] else "failed",
+        "status": "passed" if acceptance_aggregate["passed"] and coverage_complete else "partial" if acceptance_aggregate["passed"] else "failed",
         "interpretation": interpretation,
         "sample_count": aggregate["sample_count"],
         "group_count": aggregate["group_count"],
@@ -217,6 +218,11 @@ def read_android_summary() -> dict[str, Any]:
         "oem_family_count": len(observed_families),
         "scenario_count": len(observed_scenarios),
         "coverage_complete": coverage_complete,
+        "acceptance_sample_count": len(acceptance_records),
+        "diagnostic_sample_count": len(diagnostic_records),
+        "acceptance_oem_family_count": len({record["oem_family"] for record in acceptance_records}),
+        "acceptance_scenario_count": len({record["scenario"] for record in acceptance_records}),
+        "acceptance_assertions_passed": acceptance_aggregate["passed"],
     }
 
 
@@ -271,6 +277,19 @@ def read_latency_summary(
         "name": "phase4_latency",
         "status": progress["status"],
         "checkpoints": checkpoints,
+    }
+
+
+def read_client_runtime_summary(targets: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Aggregate only the configured Flutter runtime evidence cells."""
+
+    validator = load_module(
+        "client_runtime_evidence",
+        TESTING_ROOT / "docs/tools/client_runtime_evidence.py",
+    )
+    return {
+        name: validator.aggregate_client_runtime(name, target, TESTING_ROOT)
+        for name, target in validator.configured_runtime_targets({"client_runtime": targets}).items()
     }
 
 
@@ -433,20 +452,6 @@ def run_code_checks(
             results.append(run_command("backend_integration", ["make", "test-integration"], backend_root, workspace_root, timeout=360))
         else:
             results.append(pending("backend_integration", "DATABASE_URL is not configured for an isolated PostgreSQL test database."))
-    if selected_names is None or "flutter_local_model_balanced_evaluation" in selected_names:
-        results.append(
-            pending(
-                "flutter_local_model_balanced_evaluation",
-                "No model runtime evidence has been executed; requires Android and Windows Research release runs with 50 gambling and 50 non-gambling fixtures per platform.",
-            )
-        )
-    if selected_names is None or "cross_platform_browser_support_regression" in selected_names:
-        results.append(
-            pending(
-                "cross_platform_browser_support_regression",
-                "No multi-browser runtime evidence has been executed; requires one Android device, one Windows VM, and the configured 5+5 fixture set per browser.",
-            )
-        )
     return results
 
 
@@ -586,18 +591,21 @@ def render_flutter_report(
     android_records: list[dict[str, Any]],
     device_register: dict[str, Any],
     client_runtime: dict[str, Any] | None = None,
+    target_configuration: dict[str, Any] | None = None,
 ) -> str:
     client_runtime = client_runtime or {}
+    target_configuration = target_configuration or {}
     sections = [
         "## Android anti-uninstall",
         "",
-        "| Status | Interpretation | Samples | Groups | OEM families | Scenarios | Coverage complete |",
-        "|---|---|---:|---:|---:|---:|---|",
-        f"| {android.get('status', 'pending')} | {android.get('interpretation', 'Not classified.')} | {android.get('sample_count', 0)} | {android.get('group_count', 0)} | {android.get('oem_family_count', 0)} | {android.get('scenario_count', 0)} | {android.get('coverage_complete', False)} |",
+        "| Status | Interpretation | Samples (all) | Release samples | Diagnostic samples | Release OEM families | Release scenarios | Release coverage complete |",
+        "|---|---|---:|---:|---:|---:|---:|---|",
+        f"| {android.get('status', 'pending')} | {android.get('interpretation', 'Not classified.')} | {android.get('sample_count', 0)} | {android.get('acceptance_sample_count', 0)} | {android.get('diagnostic_sample_count', 0)} | {android.get('acceptance_oem_family_count', 0)} | {android.get('acceptance_scenario_count', 0)} | {android.get('coverage_complete', False)} |",
         "",
         "## Android anti-uninstall interpretation",
         "",
         "The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.",
+        "Only `release` records count toward the acceptance device/scenario matrix. Debug or profile records remain diagnostic context and cannot complete release coverage or promote an acceptance claim.",
         "The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.",
         "Every anti-uninstall sample also records the Android runtime state needed to interpret the system action: native protection service, Device Admin, Accessibility, package presence, and recovery timing where applicable. These runtime checks are part of the anti-uninstall evidence and are not a separate component check.",
         "",
@@ -629,25 +637,29 @@ def render_flutter_report(
         "[`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).",
         "",
     ])
-    sections.extend(render_client_runtime_sections(checks, client_runtime))
+    sections.extend(render_client_runtime_sections(client_runtime, target_configuration))
     sections.extend(["", ""])
-    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "flutter_local_model_balanced_evaluation", "cross_platform_browser_support_regression"}, "flutter_component_checks"))
+    sections.extend(render_check_section(checks, COMPONENT_CHECK_NAMES["flutter"], "flutter_component_checks"))
     return render_report("Gamblock-AI Flutter / Android Report", "This report covers Flutter client checks and Android Research runtime evidence.", sections)
 
 
-def render_client_runtime_sections(checks: list[dict[str, Any]], targets: dict[str, Any]) -> list[str]:
-    model_check = next(
-        (item for item in checks if item.get("name") == "flutter_local_model_balanced_evaluation"),
-        pending("flutter_local_model_balanced_evaluation", "No model runtime evidence has been executed."),
+def render_client_runtime_sections(
+    runtime_results: dict[str, Any],
+    target_configuration: dict[str, Any],
+) -> list[str]:
+    targets = target_configuration.get("client_runtime", target_configuration)
+    model_check = runtime_results.get(
+        "flutter_local_model_balanced_evaluation",
+        pending("flutter_local_model_balanced_evaluation", "No model runtime evidence has been validated."),
     )
     model_target = targets.get("flutter_local_model_balanced_evaluation", {})
     platforms = " + ".join(str(value).title() for value in model_target.get("required_platforms", ["android", "windows"]))
     samples = model_target.get("samples_per_class_per_platform", 50)
     model_reason = model_check.get("reason", "Aggregate runtime evidence is not yet available.")
 
-    browser_check = next(
-        (item for item in checks if item.get("name") == "cross_platform_browser_support_regression"),
-        pending("cross_platform_browser_support_regression", "No multi-browser runtime evidence has been executed."),
+    browser_check = runtime_results.get(
+        "cross_platform_browser_support_regression",
+        pending("cross_platform_browser_support_regression", "No browser runtime evidence has been validated."),
     )
     browser_target = targets.get("cross_platform_browser_support_regression", {})
     browser_lists = browser_target.get("required_browsers", {})
@@ -959,6 +971,7 @@ def main() -> int:
         android_records = []
     android = read_android_summary()
     latency = read_latency_summary(target_configuration)
+    client_runtime = read_client_runtime_summary(target_configuration.get("client_runtime", {}))
     device_register = read_device_register()
     if args.run_model_replay:
         projection, grouped = run_model_replay(workspace_root, target_config_path)
@@ -982,7 +995,8 @@ def main() -> int:
             checks,
             android_records,
             device_register,
-            target_configuration.get("client_runtime", {}),
+            client_runtime,
+            target_configuration,
         )
     if "golang" in selected_reports:
         reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, COMPONENT_CHECK_NAMES["backend"], "backend_unit")

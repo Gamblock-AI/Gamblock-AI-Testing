@@ -60,7 +60,8 @@ the progress-demo gate.
 
 A source-side Android measurement is not canonical runtime evidence until its
 privacy-safe aggregate records are promoted and validated. The canonical
-report renders all three checkpoints separately. The device register remains
+report renders the two latency checkpoints separately, followed by the two
+client-runtime contracts. The device register remains
 anti-uninstall-scoped, so a latency-only pass does not change a device's
 anti-uninstall provenance status in the device register.
 

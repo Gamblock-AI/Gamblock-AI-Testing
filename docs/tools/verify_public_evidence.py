@@ -238,6 +238,29 @@ def main() -> int:
             continue
         errors.extend(forbidden_nested_values(value, str(path)))
 
+    client_runtime_validator = load_module(
+        "client_runtime_evidence",
+        ROOT / "docs/tools/client_runtime_evidence.py",
+    )
+    targets_path = ROOT / "docs/config/targets.json"
+    try:
+        targets_configuration = json.loads(targets_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        errors.append(f"{targets_path}: invalid target configuration: {error}")
+        targets_configuration = {}
+    for test_name, target in client_runtime_validator.configured_runtime_targets(targets_configuration).items():
+        evidence_root = target.get("evidence", {}).get("root")
+        if not isinstance(evidence_root, str):
+            errors.append(f"{test_name}: missing client-runtime evidence root")
+            continue
+        errors.extend(
+            client_runtime_validator.validate_client_runtime_root(
+                ROOT / evidence_root,
+                test_name,
+                target,
+            )
+        )
+
     for path in sorted(ROOT.glob("*/evidence/ledger/**/*.jsonl")):
         validate_ledger(path, errors)
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

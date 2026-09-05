@@ -89,14 +89,12 @@ class RunEvaluationReportTest(unittest.TestCase):
             config["client_runtime"]["cross_platform_browser_support_regression"]["evidence"]["path_template"],
         )
 
-    def test_flutter_component_includes_new_client_runtime_checks(self):
+    def test_flutter_component_contains_only_source_checks(self):
         self.assertEqual(
             {
                 "testing_flutter_unit",
                 "client_python_contract_unit",
                 "flutter_pattern_interrupt_unit",
-                "flutter_local_model_balanced_evaluation",
-                "cross_platform_browser_support_regression",
             },
             RUNNER.check_names_for_components(["flutter"]),
         )
@@ -118,8 +116,6 @@ class RunEvaluationReportTest(unittest.TestCase):
                 "testing_flutter_unit",
                 "client_python_contract_unit",
                 "flutter_pattern_interrupt_unit",
-                "flutter_local_model_balanced_evaluation",
-                "cross_platform_browser_support_regression",
             ],
             [check["name"] for check in checks],
         )
@@ -140,22 +136,33 @@ class RunEvaluationReportTest(unittest.TestCase):
             },
             {"status": "pending"},
             [
-                {"name": "flutter_local_model_balanced_evaluation", "status": "pending", "reason": "model_required"},
-                {"name": "cross_platform_browser_support_regression", "status": "pending", "reason": "browser_required"},
+                {"name": "testing_flutter_unit", "status": "passed"},
             ],
             [],
             {"devices": []},
             {
                 "flutter_local_model_balanced_evaluation": {
-                    "required_platforms": ["android", "windows"],
-                    "samples_per_class_per_platform": 50,
+                    "status": "pending",
+                    "reason": "model_required",
                 },
                 "cross_platform_browser_support_regression": {
-                    "required_browsers": {
-                        "android": ["chrome", "edge", "samsung_internet", "brave", "firefox"],
-                        "windows": ["chrome", "edge", "brave", "opera", "firefox"],
+                    "status": "pending",
+                    "reason": "browser_required",
+                },
+            },
+            {
+                "client_runtime": {
+                    "flutter_local_model_balanced_evaluation": {
+                        "required_platforms": ["android", "windows"],
+                        "samples_per_class_per_platform": 50,
                     },
-                    "samples_per_class_per_browser": 5,
+                    "cross_platform_browser_support_regression": {
+                        "required_browsers": {
+                            "android": ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+                            "windows": ["chrome", "edge", "brave", "opera", "firefox"],
+                        },
+                        "samples_per_class_per_browser": 5,
+                    },
                 },
             },
         )

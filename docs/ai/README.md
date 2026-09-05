@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-05.1`
+Context version: `2026-09-05.2`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -14,8 +14,8 @@ orchestration and public evidence. It does not own product runtime code.
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders feasibility plus the current `researchRelease` Android/Chrome progress-demo. The former final-readiness latency gate is replaced by separate client runtime contracts. |
 | Structured usability + SUS | Planned protocol | Requires campus/authority confirmation before recruitment; only approved aggregates may later be disclosed. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. The device register is provenance metadata, not a separate test or evidence result. |
-| Flutter local model balanced evaluation | Contract documented; runtime pending | Android and Windows Research release builds each require 50 gambling and 50 non-gambling fixtures, with accuracy/precision/recall/F1 ≥90% and FPR ≤5%. |
-| Cross-platform browser support regression | Contract documented; runtime pending | One Android device and one Windows VM cover five browsers per platform with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
+| Flutter local model balanced evaluation | Contract and public-cell validator implemented; runtime pending | The full deployed Hybrid artifact is evaluated in Android Research release and Windows Pilot release builds, each with 50 gambling and 50 non-gambling fixtures; accuracy/precision/recall/F1 ≥90% and FPR ≤5%. |
+| Cross-platform browser support regression | Contract and public-cell validator implemented; runtime pending | One Android device and one Windows VM cover five required evaluation-browser candidates per platform with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks; the website check includes the complete Vitest and Playwright E2E suites. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
