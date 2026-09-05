@@ -98,6 +98,16 @@ Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browse
 | android_instrumented_runtime | pending |
 | windows_extension_model_e2e | pending |
 
+## Supplemental explicit verification
+
+These checks were executed explicitly on 2026-09-05 and are recorded as
+aggregate results only:
+
+| Check | Status | Aggregate result |
+|---|---|---|
+| flutter_test_full | passed | `flutter test` completed with 116 tests passed |
+| flutter_verify | passed | `./scripts/verify.sh` completed l10n parity validation and `flutter analyze` with no issues |
+
 ## Interpretation limits
 
 Offline evaluation is not physical browser, Android, or Windows runtime proof.
