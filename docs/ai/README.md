@@ -11,10 +11,11 @@ orchestration and public evidence. It does not own product runtime code.
 |---|---|---|
 | Model evaluation | Implemented tooling | Deployment projection and domain-grouped evidence expose the current 90%/5% gate. Evidence remains offline/projection evidence, not physical browser, Android, or Windows proof. |
 | Model evidence storage | Implemented | Permanent aggregate JSON is stored under `model/evidence/aggregate/` and allowlisted aggregate-generated charts under `model/evidence/visuals/`; raw replay inputs remain in ignored `model/private/`. |
-| Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders separate feasibility, the current `researchRelease` Android/Chrome progress-demo, and Android/Windows Chrome Release final-readiness gates. |
+| Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders feasibility plus the current `researchRelease` Android/Chrome progress-demo. The former final-readiness latency gate is replaced by separate client runtime contracts. |
 | Structured usability + SUS | Planned protocol | Requires campus/authority confirmation before recruitment; only approved aggregates may later be disclosed. |
-| Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. Valid evidence and the retest queue are rendered separately. |
-| Windows extension–model runtime | Harness implemented; VM runtime pending | Chrome Release smoke test covers the real extension, authenticated loopback service, current Hybrid-v2 artifact, and intervention path. It requires an interactive Windows VM and is recorded in the Flutter report. |
+| Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. The device register is provenance metadata, not a separate test or evidence result. |
+| Flutter local model balanced evaluation | Contract documented; runtime pending | Android and Windows Research release builds each require 50 gambling and 50 non-gambling fixtures, with accuracy/precision/recall/F1 ≥90% and FPR ≤5%. |
+| Cross-platform browser support regression | Contract documented; runtime pending | One Android device and one Windows VM cover five browsers per platform with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks; the website check includes the complete Vitest and Playwright E2E suites. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
@@ -33,6 +34,7 @@ orchestration and public evidence. It does not own product runtime code.
 11. `flutter/config/device-register.json` — safe device/provenance register.
 12. `docs/config/targets.json` — the single active machine-readable target contract.
 13. `../context/progress-targets.md` — umbrella current target contract and evidence boundary.
+14. `docs/ai/client-runtime-evidence.md` — Flutter client-runtime platform/browser/case folder contract.
 
 The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, `browser-extention/`, and `windows/` describe or contain system-specific checks;

@@ -9,7 +9,6 @@ import importlib.util
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,7 +38,8 @@ COMPONENT_CHECK_NAMES = {
         "testing_flutter_unit",
         "client_python_contract_unit",
         "flutter_pattern_interrupt_unit",
-        "windows_extension_model_e2e",
+        "flutter_local_model_balanced_evaluation",
+        "cross_platform_browser_support_regression",
     },
     "backend": {"backend_unit", "backend_integration"},
     "website": {"website_unit", "website_e2e"},
@@ -382,79 +382,6 @@ def run_model_tests(workspace_root: Path) -> dict[str, Any]:
     )
 
 
-def run_windows_extension_model_e2e(workspace_root: Path) -> dict[str, Any]:
-    """Run the real Windows browser-extension/service smoke test when available."""
-
-    if sys.platform != "win32":
-        return pending("windows_extension_model_e2e", "Requires an approved Windows 11 VM or Windows runner.")
-    script = TESTING_ROOT / "windows/run-extension-model-e2e.ps1"
-    if not script.exists():
-        return pending("windows_extension_model_e2e", "Windows integration harness is unavailable.")
-    powershell = shutil.which("pwsh") or shutil.which("powershell")
-    if not powershell:
-        return pending("windows_extension_model_e2e", "PowerShell is required on the Windows runner.")
-
-    result = run_command(
-        "windows_extension_model_e2e",
-        [
-            powershell,
-            "-NoProfile",
-            "-File",
-            str(script),
-            "-WorkspaceRoot",
-            str(workspace_root),
-        ],
-        TESTING_ROOT,
-        workspace_root,
-        timeout=900,
-        capture_output=True,
-    )
-    output = result.pop("_captured_output", "")
-    if not output:
-        return result
-    try:
-        summary = json.loads(output.splitlines()[-1])
-    except (json.JSONDecodeError, IndexError):
-        if result.get("status") == "passed":
-            result["status"] = "failed"
-            result["reason"] = "Windows harness did not emit an aggregate result."
-        return result
-    if not isinstance(summary, dict) or summary.get("check") != "windows_extension_model_e2e":
-        result["status"] = "failed"
-        result["reason"] = "Windows harness aggregate identity mismatch."
-        return result
-    summary_status = summary.get("status")
-    if summary_status not in {"passed", "pending", "failed"}:
-        result["status"] = "failed"
-        result["reason"] = "Windows harness aggregate status is invalid."
-        return result
-    result["status"] = summary_status
-    if summary.get("reason_code"):
-        result["reason"] = summary["reason_code"]
-    if summary_status == "passed" and summary.get("raw_url_or_dom_emitted") is not False:
-        result["status"] = "failed"
-        result["reason"] = "Windows harness raw-data assertion failed."
-    for key in (
-        "browser_family",
-        "build_mode",
-        "scenario_total",
-        "scenario_passed",
-        "model_version",
-        "ruleset_version",
-        "model_sha256",
-        "rules_sha256",
-        "fixtures_sha256",
-        "source_onnx_sha256",
-        "intervention_samples",
-        "intervention_min_ms",
-        "intervention_max_ms",
-        "raw_url_or_dom_emitted",
-    ):
-        if key in summary:
-            result[key] = summary[key]
-    return result
-
-
 def check_names_for_components(components: list[str] | None) -> set[str] | None:
     if components is None:
         return None
@@ -474,7 +401,6 @@ def run_code_checks(
     workspace_root: Path,
     include_flutter: bool,
     components: list[str] | None = None,
-    include_windows_e2e: bool = False,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     selected_names = check_names_for_components(components)
@@ -507,13 +433,20 @@ def run_code_checks(
             results.append(run_command("backend_integration", ["make", "test-integration"], backend_root, workspace_root, timeout=360))
         else:
             results.append(pending("backend_integration", "DATABASE_URL is not configured for an isolated PostgreSQL test database."))
-    if selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
-        results.append(pending("android_instrumented_runtime", "Requires an explicitly approved Android device run."))
-    if selected_names is None or "windows_extension_model_e2e" in selected_names:
-        if include_windows_e2e:
-            results.append(run_windows_extension_model_e2e(workspace_root))
-        else:
-            results.append(pending("windows_extension_model_e2e", "Use --include-windows-e2e on an approved Windows VM or runner."))
+    if selected_names is None or "flutter_local_model_balanced_evaluation" in selected_names:
+        results.append(
+            pending(
+                "flutter_local_model_balanced_evaluation",
+                "No model runtime evidence has been executed; requires Android and Windows Research release runs with 50 gambling and 50 non-gambling fixtures per platform.",
+            )
+        )
+    if selected_names is None or "cross_platform_browser_support_regression" in selected_names:
+        results.append(
+            pending(
+                "cross_platform_browser_support_regression",
+                "No multi-browser runtime evidence has been executed; requires one Android device, one Windows VM, and the configured 5+5 fixture set per browser.",
+            )
+        )
     return results
 
 
@@ -646,52 +579,15 @@ def render_android_evidence_details(
     return lines
 
 
-def render_android_retest_queue(device_register: dict[str, Any]) -> list[str]:
-    devices = [
-        device
-        for device in device_register.get("devices", [])
-        if isinstance(device, dict) and device.get("evidence_status") != "valid_evidence"
-    ]
-    lines = [
-        "## Android device retest queue (not evidence)",
-        "",
-        "These device records are planning metadata only. They do not contribute",
-        "to Android samples, groups, OEM coverage, scenario coverage, or pass rates.",
-        "A blank result means that no prior informal outcome has been promoted.",
-        "",
-        "| Device | OEM | Source | Service | Android API | Build | Status | Result | Retest required |",
-        "|---|---|---|---|---:|---|---|---|---|",
-    ]
-    for device in sorted(devices, key=lambda item: str(item.get("device_alias", ""))):
-        lines.append(
-            "| "
-            + " | ".join(
-                (
-                    markdown_value(device.get("display_name")),
-                    markdown_value(device.get("oem_family")),
-                    markdown_value(device.get("source")),
-                    markdown_value(device.get("service")),
-                    markdown_value(device.get("android_api")),
-                    markdown_value(device.get("build_mode")),
-                    markdown_value(device.get("evidence_status")),
-                    "—",
-                    markdown_value(device.get("retest_required")),
-                )
-            )
-            + " |"
-        )
-    if not devices:
-        lines.append("| — | — | — | — | — | — | No devices queued | — | — |")
-    return lines
-
-
 def render_flutter_report(
     android: dict[str, Any],
     latency: dict[str, Any],
     checks: list[dict[str, Any]],
     android_records: list[dict[str, Any]],
     device_register: dict[str, Any],
+    client_runtime: dict[str, Any] | None = None,
 ) -> str:
+    client_runtime = client_runtime or {}
     sections = [
         "## Android anti-uninstall",
         "",
@@ -703,10 +599,11 @@ def render_flutter_report(
         "",
         "The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.",
         "The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.",
+        "Every anti-uninstall sample also records the Android runtime state needed to interpret the system action: native protection service, Device Admin, Accessibility, package presence, and recovery timing where applicable. These runtime checks are part of the anti-uninstall evidence and are not a separate component check.",
         "",
         "## Phase 4 latency",
         "",
-        "The progress-report status is the `progress_demo` checkpoint. Final readiness remains a separate retained gate.",
+        "The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by separate client runtime contracts below.",
         "",
         "| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |",
         "|---|---|---:|---:|---:|---|---:|",
@@ -724,8 +621,6 @@ def render_flutter_report(
         sections.append("| — | pending | 0 | 0 | 0 | False | 0 |")
     sections.append("")
     sections.extend(render_android_evidence_details(android_records, device_register))
-    sections.extend(["", ""])
-    sections.extend(render_android_retest_queue(device_register))
     sections.extend([
         "",
         "## Android testing context",
@@ -734,57 +629,49 @@ def render_flutter_report(
         "[`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).",
         "",
     ])
-    sections.extend(render_windows_e2e_section(checks))
+    sections.extend(render_client_runtime_sections(checks, client_runtime))
     sections.extend(["", ""])
-    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "android_instrumented_runtime", "windows_extension_model_e2e"}, "flutter_component_checks"))
+    sections.extend(render_check_section(checks, {"testing_flutter_unit", "client_python_contract_unit", "flutter_pattern_interrupt_unit", "flutter_local_model_balanced_evaluation", "cross_platform_browser_support_regression"}, "flutter_component_checks"))
     return render_report("Gamblock-AI Flutter / Android Report", "This report covers Flutter client checks and Android Research runtime evidence.", sections)
 
 
-def render_windows_e2e_section(checks: list[dict[str, Any]]) -> list[str]:
-    check = next((item for item in checks if item.get("name") == "windows_extension_model_e2e"), None)
-    if check is None:
-        return [
-            "## Windows extension–model runtime",
-            "",
-            "| Status | Browser | Build | Scenarios | Passed | Reason |",
-            "|---|---|---|---:|---:|---|",
-            "| pending | — | — | — | — | Requires an approved Windows runner |",
-        ]
+def render_client_runtime_sections(checks: list[dict[str, Any]], targets: dict[str, Any]) -> list[str]:
+    model_check = next(
+        (item for item in checks if item.get("name") == "flutter_local_model_balanced_evaluation"),
+        pending("flutter_local_model_balanced_evaluation", "No model runtime evidence has been executed."),
+    )
+    model_target = targets.get("flutter_local_model_balanced_evaluation", {})
+    platforms = " + ".join(str(value).title() for value in model_target.get("required_platforms", ["android", "windows"]))
+    samples = model_target.get("samples_per_class_per_platform", 50)
+    model_reason = model_check.get("reason", "Aggregate runtime evidence is not yet available.")
+
+    browser_check = next(
+        (item for item in checks if item.get("name") == "cross_platform_browser_support_regression"),
+        pending("cross_platform_browser_support_regression", "No multi-browser runtime evidence has been executed."),
+    )
+    browser_target = targets.get("cross_platform_browser_support_regression", {})
+    browser_lists = browser_target.get("required_browsers", {})
+    android_browsers = ", ".join(str(value).replace("_", " ").title() for value in browser_lists.get("android", [])) or "Chrome, Edge, Samsung Internet, Brave, Firefox"
+    windows_browsers = ", ".join(str(value).replace("_", " ").title() for value in browser_lists.get("windows", [])) or "Chrome, Edge, Brave, Opera, Firefox"
+    browser_samples = browser_target.get("samples_per_class_per_browser", 5)
+    browser_reason = browser_check.get("reason", "Aggregate runtime evidence is not yet available.")
+
     return [
-        "## Windows extension–model runtime",
+        "## Flutter local model balanced evaluation",
         "",
-        "| Status | Browser | Build | Scenarios | Passed | Reason | Model version | Ruleset version | Intervention samples |",
-        "|---|---|---|---:|---:|---|---|---|---:|",
-        "| "
-        + " | ".join(
-            markdown_value(check.get(key))
-            for key in (
-                "status",
-                "browser_family",
-                "build_mode",
-                "scenario_total",
-                "scenario_passed",
-                "reason",
-                "model_version",
-                "ruleset_version",
-                "intervention_samples",
-            )
-        )
-        + " |",
+        "| Status | Platforms | Samples per platform | Build | Gate | Reason |",
+        "|---|---|---:|---|---|---|",
+        f"| {markdown_value(model_check.get('status', 'pending'))} | {markdown_value(platforms)} | {samples} gambling + {samples} non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | {markdown_value(model_reason)} |",
         "",
-        "| Artifact | SHA-256 |",
-        "|---|---|",
-        *(
-            f"| {label} | {markdown_value(check.get(key))} |"
-            for label, key in (
-                ("Model asset", "model_sha256"),
-                ("Rules asset", "rules_sha256"),
-                ("Fixture set", "fixtures_sha256"),
-                ("Source ONNX", "source_onnx_sha256"),
-            )
-        ),
+        "This is a balanced local-classifier evaluation contract. It is not satisfied by the existing 30-sample latency evidence.",
         "",
-        "Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browser log data are never published.",
+        "## Cross-platform browser support regression",
+        "",
+        "| Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |",
+        "|---|---:|---:|---|---|---:|---|---|",
+        f"| {markdown_value(browser_check.get('status', 'pending'))} | 1 | 1 | {markdown_value(android_browsers)} | {markdown_value(windows_browsers)} | {browser_samples} gambling + {browser_samples} non-gambling | non-gambling: allow; gambling: intervention | {markdown_value(browser_reason)} |",
+        "",
+        "Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.",
     ]
 
 
@@ -1057,7 +944,6 @@ def main() -> int:
         help="Limit --run-code-tests and report generation to the selected component(s).",
     )
     parser.add_argument("--include-flutter", action="store_true")
-    parser.add_argument("--include-windows-e2e", action="store_true")
     args = parser.parse_args()
 
     if args.component and not (args.run_code_tests or args.run_model_tests):
@@ -1079,7 +965,7 @@ def main() -> int:
     else:
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
-    checks = run_code_checks(workspace_root, args.include_flutter, args.component, args.include_windows_e2e) if args.run_code_tests else [
+    checks = run_code_checks(workspace_root, args.include_flutter, args.component) if args.run_code_tests else [
         pending("component_checks", "Not requested; use --run-code-tests explicitly."),
     ]
     model_checks = [check for check in checks if check.get("name") == "model_tooling_unit"]
@@ -1096,6 +982,7 @@ def main() -> int:
             checks,
             android_records,
             device_register,
+            target_configuration.get("client_runtime", {}),
         )
     if "golang" in selected_reports:
         reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, COMPONENT_CHECK_NAMES["backend"], "backend_unit")
@@ -1117,11 +1004,6 @@ def main() -> int:
                 "outputs": outputs,
                 "android_ledger_exists": android_ledger_exists,
                 "android_samples": android.get("sample_count", 0),
-                "android_retest_devices": sum(
-                    device.get("evidence_status") != "valid_evidence"
-                    for device in device_register.get("devices", [])
-                    if isinstance(device, dict)
-                ),
             },
             sort_keys=True,
         )

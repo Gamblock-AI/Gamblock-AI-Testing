@@ -1,64 +1,67 @@
-# Windows extension–model integration test
+# Cross-platform browser support regression
 
-This runbook verifies the real local chain:
+This contract verifies the local browser-to-protection chain on one Android
+device and one Windows VM across the supported browser matrix:
 
 ```text
-Chrome + passive extension -> authenticated localhost WebSocket
--> Windows protection service -> current Hybrid-v2 artifacts -> intervention
+passive extension/browser -> authenticated localhost WebSocket
+-> platform protection authority -> local model decision
 ```
 
-The test uses synthetic pages served from `127.0.0.1`. It never visits a real
-gambling site and never sends browsing data to the backend or a cloud provider.
+The regression uses synthetic pages and aggregate-safe outcomes. It never
+visits a real gambling site and never sends browsing data to the backend or a
+cloud provider.
+
+## Required matrix
+
+| Platform | Device | Browsers | Per-browser fixtures |
+|---|---:|---|---:|
+| Android | 1 physical device | Chrome, Edge, Samsung Internet, Brave, Firefox | 5 non-gambling + 5 gambling |
+| Windows | 1 interactive VM | Chrome, Edge, Brave, Opera, Firefox | 5 non-gambling + 5 gambling |
+
+Expected outcomes are `allow` for non-gambling fixtures and `intervention` for
+gambling fixtures. This contract is separate from the multi-OEM Android
+anti-uninstall matrix and from latency measurement.
 
 ## Prerequisites
 
 - Windows 11 x64 VM with an interactive desktop session;
 - administrator PowerShell;
 - Node.js 20+;
-- Chrome Stable;
+- the five configured Windows browsers installed;
 - the `GamblockAIProtection` Windows service installed from the current app
   bundle and able to load the current protection assets;
+- Android device with the five configured Android browsers installed;
 - the model, app, extension, and testing checkouts at the workspace paths.
 
-Install the E2E dependency once from `gamblock-ai-testing/windows/e2e/`:
+The existing Playwright helper is a Chrome-only development harness and is not
+yet sufficient to satisfy this five-browser contract. A multi-browser runner,
+including the Firefox adapter, is still pending.
+
+## Current status
+
+The canonical status is `pending`: no complete Android + Windows matrix has
+been executed or promoted as public evidence. Do not mark this test passed from
+the existing Chrome-only smoke test or from source-level checks.
+
+When the multi-browser harness is available, install its dependencies from
+`gamblock-ai-testing/windows/e2e/`:
 
 ```powershell
 npm ci
-npx playwright install chromium
+npx playwright install chromium firefox
 ```
 
-## Run
+## Future run
 
-From the testing repository root:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\run-extension-model-e2e.ps1 \
-  -WorkspaceRoot C:\src\gamblock-ai
-```
-
-The script starts the installed service if needed, runs seven scenarios in
-Chrome Release, and stops the service again when it was not running before the
-test. The final line is one aggregate JSON object. Failure output contains only
-an opaque reason code; raw pages, URLs, DOM text, screenshots, tokens, and
-browser logs are not emitted or retained by the harness.
-
-The test is intentionally a runtime smoke test, not the full Phase 4 latency
-gate. The current progress checkpoint is the separate Android
-`researchRelease` demo capture; Windows contributes to the current
-final-readiness matrix, which requires the
-separately validated minimum sample count for every configured
-platform/browser/profile-or-release cell.
+The final run command will be documented when the multi-browser harness is
+implemented. It must emit only aggregate browser/platform outcomes and must
+not retain raw pages, URLs, DOM text, screenshots, tokens, or browser logs.
 
 ## Evidence handoff
 
-Use the testing runner from the testing repository root after the Windows run:
-
-```powershell
-python docs/tools/run_evaluation.py \
-  --workspace-root C:\src\gamblock-ai \
-  --run-code-tests --component flutter --include-windows-e2e
-```
-
-On non-Windows hosts, the corresponding check remains `pending` with the exact
-environment reason. The canonical aggregate result belongs in
-`flutter/report.md`; no raw runtime output belongs in the public repository.
+After both platform runs, synchronize the aggregate result through the normal
+testing handoff. The canonical result belongs in `flutter/report.md`; no raw
+runtime output belongs in the public repository. The case evidence must use
+the platform/browser/case folders defined in
+[`../docs/ai/client-runtime-evidence.md`](../docs/ai/client-runtime-evidence.md).

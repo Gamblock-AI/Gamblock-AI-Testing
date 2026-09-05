@@ -30,3 +30,8 @@ promote them to the matching device folder. The promoter merges with an
 existing device ledger atomically; it rejects duplicate samples, mixed device
 aliases, and root-level output. Never use shell redirection or manually
 overwrite an existing ledger.
+
+The pending Flutter client-runtime evaluations do not use this device ledger.
+Their evidence is grouped by platform, browser when applicable, and case under
+[`../client-runtime`](../client-runtime) according to
+[`../../../docs/ai/client-runtime-evidence.md`](../../../docs/ai/client-runtime-evidence.md).

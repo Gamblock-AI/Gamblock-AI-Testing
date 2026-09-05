@@ -1,5 +1,4 @@
 import importlib.util
-import json
 import os
 import pathlib
 import tempfile
@@ -72,12 +71,33 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertEqual("active", config["activation_status"])
         self.assertNotIn("report_version", config)
         self.assertIn("progress_gate", config["detection"])
-        self.assertEqual(["chrome"], config["latency"]["final_readiness"]["required_browser_families"])
-        self.assertEqual(["release"], config["latency"]["final_readiness"]["required_build_modes"])
+        self.assertNotIn("final_readiness", config["latency"])
+        self.assertEqual(
+            ["android", "windows"],
+            config["client_runtime"]["flutter_local_model_balanced_evaluation"]["required_platforms"],
+        )
+        self.assertEqual(
+            ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+            config["client_runtime"]["cross_platform_browser_support_regression"]["required_browsers"]["android"],
+        )
+        self.assertEqual(
+            "<platform>/<case>",
+            config["client_runtime"]["flutter_local_model_balanced_evaluation"]["evidence"]["path_template"],
+        )
+        self.assertEqual(
+            "<platform>/<browser>/<case>",
+            config["client_runtime"]["cross_platform_browser_support_regression"]["evidence"]["path_template"],
+        )
 
-    def test_flutter_component_includes_windows_extension_model_e2e(self):
-        self.assertIn(
-            "windows_extension_model_e2e",
+    def test_flutter_component_includes_new_client_runtime_checks(self):
+        self.assertEqual(
+            {
+                "testing_flutter_unit",
+                "client_python_contract_unit",
+                "flutter_pattern_interrupt_unit",
+                "flutter_local_model_balanced_evaluation",
+                "cross_platform_browser_support_regression",
+            },
             RUNNER.check_names_for_components(["flutter"]),
         )
 
@@ -98,8 +118,8 @@ class RunEvaluationReportTest(unittest.TestCase):
                 "testing_flutter_unit",
                 "client_python_contract_unit",
                 "flutter_pattern_interrupt_unit",
-                "android_instrumented_runtime",
-                "windows_extension_model_e2e",
+                "flutter_local_model_balanced_evaluation",
+                "cross_platform_browser_support_regression",
             ],
             [check["name"] for check in checks],
         )
@@ -112,67 +132,41 @@ class RunEvaluationReportTest(unittest.TestCase):
             flutter_call.args[1],
         )
 
-    def test_windows_runtime_is_pending_off_windows(self):
-        result = RUNNER.run_windows_extension_model_e2e(ROOT.parent)
-
-        self.assertEqual("windows_extension_model_e2e", result["name"])
-        self.assertEqual("pending", result["status"])
-
-    def test_windows_runtime_keeps_only_allowlisted_aggregate_fields(self):
-        summary = {
-            "check": "windows_extension_model_e2e",
-            "status": "passed",
-            "browser_family": "chrome",
-            "build_mode": "release",
-            "scenario_total": 7,
-            "scenario_passed": 7,
-            "model_version": "gamblock-lr-14012bec0479",
-            "ruleset_version": "gamblock-rules-v2",
-            "model_sha256": "a" * 64,
-            "rules_sha256": "b" * 64,
-            "fixtures_sha256": "c" * 64,
-            "source_onnx_sha256": "d" * 64,
-            "intervention_samples": 2,
-            "raw_url_or_dom_emitted": False,
-            "raw_dom": "must-not-be-retained",
-        }
-        command_result = {
-            "name": "windows_extension_model_e2e",
-            "status": "passed",
-            "_captured_output": json.dumps(summary),
-        }
-        with mock.patch.object(RUNNER.sys, "platform", "win32"), mock.patch.object(
-            RUNNER.shutil, "which", return_value="pwsh"
-        ), mock.patch.object(RUNNER, "run_command", return_value=command_result):
-            result = RUNNER.run_windows_extension_model_e2e(ROOT.parent)
-
-        self.assertEqual("passed", result["status"])
-        self.assertEqual(7, result["scenario_passed"])
-        self.assertEqual("gamblock-lr-14012bec0479", result["model_version"])
-        self.assertEqual("a" * 64, result["model_sha256"])
-        self.assertEqual("d" * 64, result["source_onnx_sha256"])
-        self.assertFalse(result["raw_url_or_dom_emitted"])
-        self.assertNotIn("raw_dom", result)
-        self.assertNotIn("_captured_output", result)
-
-    def test_flutter_report_renders_windows_runtime_status(self):
+    def test_flutter_report_renders_client_runtime_contracts(self):
         report = RUNNER.render_flutter_report(
             {
                 "status": "failed",
                 "interpretation": "Android/OEM Settings limitation; not interpreted as a Flutter code defect.",
             },
             {"status": "pending"},
-            [{"name": "windows_extension_model_e2e", "status": "pending", "reason": "windows_required"}],
+            [
+                {"name": "flutter_local_model_balanced_evaluation", "status": "pending", "reason": "model_required"},
+                {"name": "cross_platform_browser_support_regression", "status": "pending", "reason": "browser_required"},
+            ],
             [],
             {"devices": []},
+            {
+                "flutter_local_model_balanced_evaluation": {
+                    "required_platforms": ["android", "windows"],
+                    "samples_per_class_per_platform": 50,
+                },
+                "cross_platform_browser_support_regression": {
+                    "required_browsers": {
+                        "android": ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+                        "windows": ["chrome", "edge", "brave", "opera", "firefox"],
+                    },
+                    "samples_per_class_per_browser": 5,
+                },
+            },
         )
 
         self.assertIn("Android/OEM Settings limitation", report)
         self.assertIn("not as an unresolved Flutter code defect", report)
-        self.assertIn("## Windows extension–model runtime", report)
-        self.assertIn("| windows_extension_model_e2e | pending |", report)
-        self.assertIn("windows_required", report)
-        self.assertIn("raw URL, DOM, token, screenshot", report)
+        self.assertIn("## Flutter local model balanced evaluation", report)
+        self.assertIn("model_required", report)
+        self.assertIn("## Cross-platform browser support regression", report)
+        self.assertIn("browser_required", report)
+        self.assertIn("Samsung Internet", report)
 
     def test_component_selection_targets_only_browser_extension(self):
         self.assertEqual(
@@ -301,34 +295,6 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertEqual(RUNNER.MODEL_VISUAL_ROOT.parent, RUNNER.MODEL_EVIDENCE_ROOT)
         self.assertEqual(RUNNER.MODEL_PRIVATE_ROOT.parent, RUNNER.TESTING_ROOT / "model")
         self.assertNotIn("gamblock-ai-model", str(RUNNER.MODEL_EVIDENCE_ROOT))
-
-    def test_valid_evidence_and_retest_queue_are_separate(self):
-        register = {
-            "devices": [
-                {
-                    "device_alias": "pixel_9_pro_remote_01",
-                    "display_name": "Google Pixel 9 Pro Remote",
-                    "service": "firebase_test_lab_android_device_streaming",
-                    "evidence_status": "valid_evidence",
-                },
-                {
-                    "device_alias": "redmi_12c_local_01",
-                    "display_name": "Redmi 12C",
-                    "service": "local_physical_device",
-                    "evidence_status": "pending_retest",
-                    "retest_required": True,
-                },
-            ]
-        }
-        evidence = "\n".join(RUNNER.render_android_evidence_details([record()], register))
-        queue = "\n".join(RUNNER.render_android_retest_queue(register))
-
-        self.assertIn("Google Pixel 9 Pro Remote", evidence)
-        self.assertIn("firebase_test_lab_android_device_streaming", evidence)
-        self.assertNotIn("Redmi 12C", evidence)
-        self.assertIn("Redmi 12C", queue)
-        self.assertIn("pending_retest", queue)
-        self.assertIn(" | — |", queue)
 
     def test_markdown_value_does_not_emit_empty_result_as_claim(self):
         self.assertEqual(RUNNER.markdown_value(None), "—")

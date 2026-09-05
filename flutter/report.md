@@ -17,16 +17,16 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.
 The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.
+Every anti-uninstall sample also records the Android runtime state needed to interpret the system action: native protection service, Device Admin, Accessibility, package presence, and recovery timing where applicable. These runtime checks are part of the anti-uninstall evidence and are not a separate component check.
 
 ## Phase 4 latency
 
-The progress-report status is the `progress_demo` checkpoint. Final readiness remains a separate retained gate.
+The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by separate client runtime contracts below.
 
 | Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |
 |---|---|---:|---:|---:|---|---:|
 | latency_feasibility | passed | 30 | 1 | 1 | True | 0 |
 | progress_demo | passed | 30 | 1 | 1 | True | 0 |
-| final_readiness | pending | 30 | 1 | 1 | False | 1 |
 
 ## Android device evidence detail
 
@@ -57,35 +57,26 @@ blocked uninstall assertion.
 | Redmi 12C | tamper_redmi12c_release_20260905 / redmi_setup_01 | xiaomi_redmi | 34 | release | local_physical_device | setup | none | none / none | no_tamper → no_tamper | none | true → true | true → true | true → true | true | — | passed |
 
 
-## Android device retest queue (not evidence)
-
-These device records are planning metadata only. They do not contribute
-to Android samples, groups, OEM coverage, scenario coverage, or pass rates.
-A blank result means that no prior informal outcome has been promoted.
-
-| Device | OEM | Source | Service | Android API | Build | Status | Result | Retest required |
-|---|---|---|---|---:|---|---|---|---|
-| Redmi 12C | xiaomi_redmi | local_physical_device | local_physical_device | 34 | release | pending_retest | — | true |
-
 ## Android testing context
 
 Service and cross-OEM interpretation are maintained in
 [`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).
 
-## Windows extension–model runtime
+## Flutter local model balanced evaluation
 
-| Status | Browser | Build | Scenarios | Passed | Reason | Model version | Ruleset version | Intervention samples |
-|---|---|---|---:|---:|---|---|---|---:|
-| pending | — | — | — | — | Use --include-windows-e2e on an approved Windows VM or runner. | — | — | — |
+| Status | Platforms | Samples per platform | Build | Gate | Reason |
+|---|---|---:|---|---|---|
+| pending | Android + Windows | 50 gambling + 50 non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | No model runtime evidence has been executed. |
 
-| Artifact | SHA-256 |
-|---|---|
-| Model asset | — |
-| Rules asset | — |
-| Fixture set | — |
-| Source ONNX | — |
+This is a balanced local-classifier evaluation contract. It is not satisfied by the existing 30-sample latency evidence.
 
-Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browser log data are never published.
+## Cross-platform browser support regression
+
+| Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |
+|---|---:|---:|---|---|---:|---|---|
+| pending | 1 | 1 | Chrome, Edge, Samsung Internet, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | No multi-browser runtime evidence has been executed. |
+
+Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
 
 
 ## Component checks
@@ -95,8 +86,8 @@ Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browse
 | testing_flutter_unit | passed |
 | client_python_contract_unit | passed |
 | flutter_pattern_interrupt_unit | passed |
-| android_instrumented_runtime | pending |
-| windows_extension_model_e2e | pending |
+| flutter_local_model_balanced_evaluation | pending |
+| cross_platform_browser_support_regression | pending |
 
 ## Supplemental explicit verification
 

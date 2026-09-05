@@ -92,7 +92,7 @@ def artifact_contract(model_path: Path, rules_path: Path, model: dict[str, Any])
     """Describe the actual serialized Hybrid artifacts used by this evaluator.
 
     This is an artifact-integrity check, not a physical Android/Windows runtime
-    observation. Runtime coverage remains a separate final-readiness gate.
+    observation. Runtime coverage remains a separate client-runtime contract.
     """
 
     targets = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))["hybrid_artifact"]

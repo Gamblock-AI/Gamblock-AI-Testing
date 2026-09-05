@@ -16,6 +16,10 @@ receipt is not a second report and is not committed by default.
 - `<technology>/evidence/ledger/` contains public, aggregate-only evidence for
   that technology. Flutter/Android runtime ledgers are grouped below
   `flutter/evidence/ledger/<device_alias>/`.
+- Flutter client-runtime evidence, when executed, is grouped below
+  `flutter/evidence/client-runtime/<test>/<platform>/[<browser>/]<case>/`;
+  the fixed dimensions and file contract are defined in
+  `docs/ai/client-runtime-evidence.md`.
 - Each technology's `<technology>/report.md` is its only human-readable
   canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
@@ -35,7 +39,9 @@ receipt is not a second report and is not committed by default.
 - `flutter/` owns Flutter/Android anti-uninstall, Android tamper, and Phase 4
   latency harnesses plus their tests. The anti-uninstall matrix, Phase 4
   latency procedure, and shared new-device checklist are separate runbooks;
-  all runtime ledgers remain grouped by stable device alias.
+  all existing runtime ledgers remain grouped by stable device alias. The two
+  pending client-runtime evaluations use their separate platform/browser/case
+  evidence layout when runtime evidence is eventually produced.
 - `golang/`, `next/`, and `browser-extention/` own the test entrypoint documentation for
   the Go backend, Next.js website, and browser extension respectively. Their
   source and production tests remain in the component repositories.

@@ -8,7 +8,13 @@
       "precision_min": 0.90,
       "recall_min": 0.90,
       "f1_score_min": 0.90,
-      "false_positive_rate_max": 0.05
+      "false_positive_rate_max": 0.05,
+      "evidence": {
+        "root": "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation",
+        "path_template": "<platform>/<case>",
+        "required_case_directories": ["gambling", "non_gambling"],
+        "aggregate_files": ["summary.json", "samples.jsonl"]
+      }
     },
     "progress_gate": {
       "accuracy_min": 0.90,
@@ -38,13 +44,40 @@
       "required_browser_families": ["chrome"],
       "required_build_modes": ["release"],
       "required_scenarios": ["warm_foreground_online"]
-    },
-    "final_readiness": {
-      "input_to_visible_ms_p95_exclusive": 200.0,
-      "minimum_successful_samples_per_group": 30,
+    }
+  },
+  "client_runtime": {
+    "flutter_local_model_balanced_evaluation": {
       "required_platforms": ["android", "windows"],
-      "required_browser_families": ["chrome"],
-      "required_build_modes": ["release"]
+      "required_product_flavors": ["research"],
+      "required_build_modes": ["release"],
+      "samples_per_class_per_platform": 50,
+      "classes": ["gambling", "non_gambling"],
+      "accuracy_min": 0.90,
+      "precision_min": 0.90,
+      "recall_min": 0.90,
+      "f1_score_min": 0.90,
+      "false_positive_rate_max": 0.05
+    },
+    "cross_platform_browser_support_regression": {
+      "required_devices": {"android": 1, "windows": 1},
+      "required_build_modes": ["release"],
+      "samples_per_class_per_browser": 5,
+      "classes": ["gambling", "non_gambling"],
+      "required_browsers": {
+        "android": ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+        "windows": ["chrome", "edge", "brave", "opera", "firefox"]
+      },
+      "expected_outcomes": {
+        "gambling": "intervention",
+        "non_gambling": "allow"
+      },
+      "evidence": {
+        "root": "flutter/evidence/client-runtime/cross_platform_browser_support_regression",
+        "path_template": "<platform>/<browser>/<case>",
+        "required_case_directories": ["gambling", "non_gambling"],
+        "aggregate_files": ["summary.json", "samples.jsonl"]
+      }
     }
   },
   "pattern_interrupt": {

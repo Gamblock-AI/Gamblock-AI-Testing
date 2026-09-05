@@ -26,7 +26,7 @@ Component repositories link here instead of copying test results.
 | `model/evidence/aggregate/` | Model aggregate JSON evidence |
 | `model/evidence/visuals/` | Allowlisted aggregate-generated model charts |
 | `<technology>/report.md` | One canonical report per technology |
-| `flutter/config/` and `flutter/evidence/` | Android matrix and public records |
+| `flutter/config/` and `flutter/evidence/` | Android matrix, device ledgers, and client-runtime public records |
 | `docs/ai/` | AI context, Android/Firebase service context, and runbooks |
 
 ## Run from the umbrella
@@ -38,6 +38,11 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
+
+The two pending Flutter client-runtime evaluations use platform/browser/case
+subfolders under `flutter/evidence/client-runtime/`. See
+[`docs/ai/client-runtime-evidence.md`](docs/ai/client-runtime-evidence.md) for
+the fixed layout and privacy-safe file contract.
 
 The current target contract and evidence boundary are maintained in the
 umbrella's [`context/progress-targets.md`](../context/progress-targets.md).

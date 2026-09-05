@@ -44,6 +44,7 @@ required_context:
   - docs/ai/android-anti-uninstall-context.md
   - docs/ai/android-device-run-checklist.md
   - docs/ai/android-phase4-latency-testing.md
+  - docs/ai/client-runtime-evidence.md
   - docs/ai/testing-run-receipt.md
   - docs/ai/pkm-usability-testing.md
   - docs/ai/manifest.yaml
