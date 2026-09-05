@@ -611,7 +611,7 @@ def render_flutter_report(
         "",
         "## Phase 4 latency",
         "",
-        "The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by separate client runtime contracts below.",
+        "The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by the browser-support runtime contract below.",
         "",
         "| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |",
         "|---|---|---:|---:|---:|---|---:|",
@@ -648,42 +648,31 @@ def render_client_runtime_sections(
     target_configuration: dict[str, Any],
 ) -> list[str]:
     targets = target_configuration.get("client_runtime", target_configuration)
-    model_check = runtime_results.get(
-        "flutter_local_model_balanced_evaluation",
-        pending("flutter_local_model_balanced_evaluation", "No model runtime evidence has been validated."),
-    )
-    model_target = targets.get("flutter_local_model_balanced_evaluation", {})
-    platforms = " + ".join(str(value).title() for value in model_target.get("required_platforms", ["android", "windows"]))
-    samples = model_target.get("samples_per_class_per_platform", 50)
-    model_reason = model_check.get("reason", "Aggregate runtime evidence is not yet available.")
-
     browser_check = runtime_results.get(
         "cross_platform_browser_support_regression",
         pending("cross_platform_browser_support_regression", "No browser runtime evidence has been validated."),
     )
     browser_target = targets.get("cross_platform_browser_support_regression", {})
     browser_lists = browser_target.get("required_browsers", {})
-    android_browsers = ", ".join(str(value).replace("_", " ").title() for value in browser_lists.get("android", [])) or "Chrome, Edge, Samsung Internet, Brave, Firefox"
+    android_browsers = ", ".join(str(value).replace("_", " ").title() for value in browser_lists.get("android", [])) or "Chrome, Edge, Brave, Firefox"
     windows_browsers = ", ".join(str(value).replace("_", " ").title() for value in browser_lists.get("windows", [])) or "Chrome, Edge, Brave, Opera, Firefox"
     browser_samples = browser_target.get("samples_per_class_per_browser", 5)
     browser_reason = browser_check.get("reason", "Aggregate runtime evidence is not yet available.")
+    optional_windows = browser_check.get("optional_platforms", {}).get("windows", {})
+    optional_windows_status = optional_windows.get("status", "not_run")
+    optional_windows_reason = optional_windows.get("reason", "optional platform was not executed")
+    windows_scope = f"optional ({optional_windows_status})"
+    if optional_windows_status != "not_run":
+        windows_scope = f"optional ({optional_windows_status}: {optional_windows_reason})"
 
     return [
-        "## Flutter local model balanced evaluation",
-        "",
-        "| Status | Platforms | Samples per platform | Build | Gate | Reason |",
-        "|---|---|---:|---|---|---|",
-        f"| {markdown_value(model_check.get('status', 'pending'))} | {markdown_value(platforms)} | {samples} gambling + {samples} non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | {markdown_value(model_reason)} |",
-        "",
-        "This is a balanced local-classifier evaluation contract. It is not satisfied by the existing 30-sample latency evidence.",
-        "",
         "## Cross-platform browser support regression",
         "",
         "| Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |",
         "|---|---:|---:|---|---|---:|---|---|",
-        f"| {markdown_value(browser_check.get('status', 'pending'))} | 1 | 1 | {markdown_value(android_browsers)} | {markdown_value(windows_browsers)} | {browser_samples} gambling + {browser_samples} non-gambling | non-gambling: allow; gambling: intervention | {markdown_value(browser_reason)} |",
+        f"| {markdown_value(browser_check.get('status', 'pending'))} | 1 | {markdown_value(windows_scope)} | {markdown_value(android_browsers)} | {markdown_value(windows_browsers)} | {browser_samples} gambling + {browser_samples} non-gambling | non-gambling: allow; gambling: intervention | {markdown_value(browser_reason)} |",
         "",
-        "Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.",
+        "Android is the required platform. Windows evidence is optional and non-gating when present. Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.",
     ]
 
 

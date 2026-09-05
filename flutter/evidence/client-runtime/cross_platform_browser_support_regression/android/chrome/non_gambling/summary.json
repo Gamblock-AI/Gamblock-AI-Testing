@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "test": "cross_platform_browser_support_regression",
+  "platform": "android",
+  "browser": "chrome",
+  "case": "non_gambling",
+  "device_alias": "redmi_12c_local_01",
+  "build_mode": "release",
+  "product_flavor": "research",
+  "artifact": "researchRelease",
+  "run_id": "android_browser_regression_20260906",
+  "sample_count": 5,
+  "status": "passed",
+  "expected_outcome": "allow",
+  "passed_sample_count": 5
+}

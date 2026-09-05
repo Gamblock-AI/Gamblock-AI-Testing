@@ -41,8 +41,10 @@ The evaluation runner records missing physical-device and Windows evidence as
 runtime status is read from validated platform/browser/case evidence cells, not
 from component unit-check output.
 
-The two pending Flutter client-runtime evaluations use platform/browser/case
-subfolders under `flutter/evidence/client-runtime/`. See
+The Flutter browser-support evaluation uses platform/browser/case subfolders
+under `flutter/evidence/client-runtime/`. Android is required; Windows is
+optional and non-gating. The current Android evidence is recorded and the
+optional Windows matrix is not run. See
 [`docs/ai/client-runtime-evidence.md`](docs/ai/client-runtime-evidence.md) for
 the fixed layout and privacy-safe file contract.
 

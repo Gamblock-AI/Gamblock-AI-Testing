@@ -24,11 +24,9 @@ python3 docs/tools/run_evaluation.py \
   --workspace-root .. --run-code-tests --component browser_extension
 ```
 
-The Flutter report now tracks two separate client-runtime contracts:
-`flutter_local_model_balanced_evaluation` and
-`cross_platform_browser_support_regression`. They remain `pending` until their
-Android and Windows runtime evidence is executed and synchronized. The latter
-requires one Android device, one Windows VM, and five browsers per platform;
+The Flutter report tracks the cross-platform browser-support runtime contract.
+Android is required and Windows is optional/non-gating. It requires one Android
+device, four Android browsers, and optionally five Windows browsers;
 the existing Chrome-only Windows helper is not sufficient evidence. The runner
 does not simulate either runtime.
 

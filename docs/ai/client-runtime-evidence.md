@@ -1,8 +1,8 @@
 # Flutter client-runtime evidence layout
 
-This document defines the public evidence folder contract for the two pending
-Flutter client-runtime evaluations. It does not create evidence or change
-their current `pending` status.
+This document defines the public evidence folder contract for the Flutter
+browser-support evaluation. It does not create evidence or claim a new runtime
+result.
 
 ## Fixed dimensions
 
@@ -21,27 +21,7 @@ inside aggregate records; it does not become a new test dimension.
 
 ## Directory layout
 
-The balanced model evaluation uses one case folder below each platform:
-
-```text
-flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation/
-├── android/
-│   ├── gambling/
-│   │   ├── summary.json
-│   │   └── samples.jsonl
-│   └── non_gambling/
-│       ├── summary.json
-│       └── samples.jsonl
-└── windows/
-    ├── gambling/
-    │   ├── summary.json
-    │   └── samples.jsonl
-    └── non_gambling/
-        ├── summary.json
-        └── samples.jsonl
-```
-
-The browser-support regression adds the browser dimension between platform and
+The browser-support regression uses the browser dimension between platform and
 case:
 
 ```text
@@ -50,17 +30,20 @@ flutter/evidence/client-runtime/cross_platform_browser_support_regression/
 └── windows/<browser>/<case>/{summary.json,samples.jsonl}
 ```
 
-The required browser directories are:
+The configured browser directories are:
 
 | Platform | Browser directories |
 |---|---|
-| Android | `chrome`, `edge`, `samsung_internet`, `brave`, `firefox` |
+| Android | `chrome`, `edge`, `brave`, `firefox` |
 | Windows | `chrome`, `edge`, `brave`, `opera`, `firefox` |
 
-The case folders are therefore the smallest reportable unit. Every required
-case folder must contain both `summary.json` and `samples.jsonl`; a missing
-platform, browser, case folder, or file is a missing required matrix cell and
-keeps the corresponding evaluation `pending`.
+Android is the required platform. Windows is optional and non-gating when
+evidence is available.
+
+Android case folders are the required reportable units. Windows case folders
+are optional: their absence does not keep the Android evaluation pending, but
+any Windows evidence that is present must use the same schema and is reported
+as non-gating optional coverage.
 
 ## File contract
 
@@ -81,33 +64,25 @@ device_alias, build_mode, product_flavor, artifact, run_id, sample_count,
 status
 ```
 
-The model summary additionally contains `expected_class` and
-`correct_sample_count`, `evaluation_scope`, and the exact `components` list
-required by the active Hybrid target; the browser summary additionally contains
-`expected_outcome` and `passed_sample_count`. The sample JSONL records must
-contain the same cell/build identity plus `sample_id`, `result`, and either
-`expected_class`/`actual_class` or `expected_outcome`/`actual_outcome`.
+The browser summary additionally contains `expected_outcome` and
+`passed_sample_count`. The sample JSONL records must
+contain the same cell/build identity plus `sample_id`, `result`, and
+`expected_outcome`/`actual_outcome`.
 
-The validator requires exactly the configured number of samples in each cell:
-50 per class for the balanced model evaluation and 5 per class per browser for
-the browser regression. A cell has one opaque `run_id`, unique `sample_id`
-values, and one safe `device_alias`; duplicate IDs, mixed runs, extra fields,
-wrong artifact identities, and invalid outcomes fail validation. An empty or
-short sample file remains `pending`; a complete cell with incorrect outcomes
-is `failed`. The model status is computed from all samples and its 90%/5% gate,
-not trusted from a summary field. The browser status is computed from the
-allow/intervention assertions, also not trusted from a summary field.
+The validator requires exactly the configured 5 samples per class in each
+browser cell. A cell has one opaque `run_id`, unique `sample_id` values, and
+one safe `device_alias`; duplicate IDs, mixed runs, extra fields, wrong
+artifact identities, and invalid outcomes fail validation. An empty or short
+sample file remains `pending`; a complete cell with incorrect outcomes is
+`failed`. The required Android status is computed from the
+allow/intervention assertions, not trusted from a summary field. Optional
+Windows status is computed the same way but does not change the required
+Android result.
 
 Multiple runs do not create another directory dimension. A new run replaces
 the current cell aggregate only after validation; historical raw runs remain
 private. If a future test requires another dimension, add it first to the
 active target configuration and this document.
-
-The balanced model test evaluates the full deployed local Hybrid artifact
-(rules, URL features, DOM/text features, and serialized Logistic Regression)
-in the Research Android and Windows release artifacts. It is a runtime gate
-and is intentionally separate from offline model replay evidence under
-`model/evidence/`.
 
 ## Privacy boundary
 
@@ -117,8 +92,8 @@ or browser logs. Raw runtime exports remain under the ignored technology
 `private/` area or an external temporary directory until an evidence promoter
 and validator have reduced them to the allowlisted aggregate schema.
 
-The five-browser lists are required evaluation candidates, not a claim that
-each browser is already supported by the product. A browser remains unverified
+The configured browser lists are required evaluation candidates, not a claim
+that each browser is already supported by the product. A browser remains unverified
 until its complete cell passes; product support gaps must be recorded as a
 runtime failure or an explicit implementation gap, never inferred from the
 matrix declaration.

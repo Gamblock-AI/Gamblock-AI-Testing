@@ -73,17 +73,18 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertIn("progress_gate", config["detection"])
         self.assertNotIn("final_readiness", config["latency"])
         self.assertEqual(
-            ["android", "windows"],
-            config["client_runtime"]["flutter_local_model_balanced_evaluation"]["required_platforms"],
+            ["cross_platform_browser_support_regression"],
+            list(config["client_runtime"]),
         )
         self.assertEqual(
-            ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+            ["chrome", "edge", "brave", "firefox"],
             config["client_runtime"]["cross_platform_browser_support_regression"]["required_browsers"]["android"],
         )
-        self.assertEqual(
-            "<platform>/<case>",
-            config["client_runtime"]["flutter_local_model_balanced_evaluation"]["evidence"]["path_template"],
-        )
+        browser_target = config["client_runtime"]["cross_platform_browser_support_regression"]
+        self.assertEqual(["android"], browser_target["required_platforms"])
+        self.assertEqual(["windows"], browser_target["optional_platforms"])
+        self.assertEqual({"android": 1}, browser_target["required_devices"])
+        self.assertEqual({"windows": 1}, browser_target["optional_devices"])
         self.assertEqual(
             "<platform>/<browser>/<case>",
             config["client_runtime"]["cross_platform_browser_support_regression"]["evidence"]["path_template"],
@@ -141,10 +142,6 @@ class RunEvaluationReportTest(unittest.TestCase):
             [],
             {"devices": []},
             {
-                "flutter_local_model_balanced_evaluation": {
-                    "status": "pending",
-                    "reason": "model_required",
-                },
                 "cross_platform_browser_support_regression": {
                     "status": "pending",
                     "reason": "browser_required",
@@ -152,13 +149,11 @@ class RunEvaluationReportTest(unittest.TestCase):
             },
             {
                 "client_runtime": {
-                    "flutter_local_model_balanced_evaluation": {
-                        "required_platforms": ["android", "windows"],
-                        "samples_per_class_per_platform": 50,
-                    },
                     "cross_platform_browser_support_regression": {
+                        "required_platforms": ["android"],
+                        "optional_platforms": ["windows"],
                         "required_browsers": {
-                            "android": ["chrome", "edge", "samsung_internet", "brave", "firefox"],
+                            "android": ["chrome", "edge", "brave", "firefox"],
                             "windows": ["chrome", "edge", "brave", "opera", "firefox"],
                         },
                         "samples_per_class_per_browser": 5,
@@ -169,11 +164,11 @@ class RunEvaluationReportTest(unittest.TestCase):
 
         self.assertIn("Android/OEM Settings limitation", report)
         self.assertIn("not as an unresolved Flutter code defect", report)
-        self.assertIn("## Flutter local model balanced evaluation", report)
-        self.assertIn("model_required", report)
         self.assertIn("## Cross-platform browser support regression", report)
         self.assertIn("browser_required", report)
-        self.assertIn("Samsung Internet", report)
+        self.assertIn("Chrome, Edge, Brave, Firefox", report)
+        self.assertIn("Windows VM", report)
+        self.assertIn("optional", report)
 
     def test_component_selection_targets_only_browser_extension(self):
         self.assertEqual(

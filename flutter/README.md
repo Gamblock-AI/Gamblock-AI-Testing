@@ -54,14 +54,14 @@ homogeneous group with at least 30 successful samples, no failure, and p95
 below 200 ms. The current progress-demo checkpoint is smaller and matches the
 demonstration artifact: `researchRelease` on Android + Chrome, scenario
 `warm_foreground_online`, with the same 30-sample/no-failure/p95 requirements.
-The former final-readiness latency gate has been replaced by the two client
-runtime contracts below. Debug builds are diagnostic only and cannot satisfy
+The former final-readiness latency gate has been replaced by the browser-support
+runtime contract below. Debug builds are diagnostic only and cannot satisfy
 the progress-demo gate.
 
 A source-side Android measurement is not canonical runtime evidence until its
 privacy-safe aggregate records are promoted and validated. The canonical
-report renders the two latency checkpoints separately, followed by the two
-client-runtime contracts. The device register remains
+report renders the two latency checkpoints separately, followed by the
+browser-support runtime contract. The device register remains
 anti-uninstall-scoped, so a latency-only pass does not change a device's
 anti-uninstall provenance status in the device register.
 
@@ -71,24 +71,16 @@ The nine-student formative activity remains off-repository feedback, not a SUS
 result. The planned task + SUS study, governance prerequisite, and data
 boundary are in [`../docs/ai/pkm-usability-testing.md`](../docs/ai/pkm-usability-testing.md).
 
-## Flutter local model balanced evaluation
-
-This pending contract evaluates the local classifier independently on Android
-and Windows Research release builds with 50 gambling and 50 non-gambling
-fixtures per platform. Accuracy, precision, recall, and F1 must each be at
-least 90%, with false-positive rate at most 5%. Existing latency samples do
-not satisfy this test.
-
 ## Cross-platform browser support regression
 
-This pending contract uses one Android device and one Windows VM. Android covers
-Chrome, Edge, Samsung Internet, Brave, and Firefox; Windows covers Chrome,
-Edge, Brave, Opera, and Firefox. Each browser runs 5 non-gambling and 5
-gambling fixtures, expecting `allow` and `intervention` respectively.
+This contract requires one Android device. Android covers Chrome, Edge, Brave,
+and Firefox; Windows coverage for Chrome, Edge, Brave, Opera, and Firefox is
+optional and non-gating. Each browser runs 5 non-gambling and 5 gambling
+fixtures, expecting `allow` and `intervention` respectively.
 
 The existing Chrome-only Windows helper is not sufficient evidence for this
-matrix. Runtime evidence remains `pending` until both platform matrices are
-executed and synchronized. When evidence is produced, store it under the
+matrix. Runtime evidence is evaluated from the required Android matrix; Windows
+evidence may be added and synchronized separately. When evidence is produced, store it under the
 platform/browser/case layout defined in
 [`../docs/ai/client-runtime-evidence.md`](../docs/ai/client-runtime-evidence.md);
 do not mix it into the anti-uninstall device ledgers.

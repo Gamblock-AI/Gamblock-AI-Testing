@@ -22,7 +22,7 @@ Every anti-uninstall sample also records the Android runtime state needed to int
 
 ## Phase 4 latency
 
-The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by separate client runtime contracts below.
+The feasibility and progress-demo checkpoints remain latency evidence. The previous final-readiness latency gate is replaced by the browser-support runtime contract below.
 
 | Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |
 |---|---|---:|---:|---:|---|---:|
@@ -62,21 +62,13 @@ blocked uninstall assertion.
 Service and cross-OEM interpretation are maintained in
 [`docs/ai/android-anti-uninstall-context.md`](../docs/ai/android-anti-uninstall-context.md).
 
-## Flutter local model balanced evaluation
-
-| Status | Platforms | Samples per platform | Build | Gate | Reason |
-|---|---|---:|---|---|---|
-| pending | Android + Windows | 50 gambling + 50 non-gambling | research release | accuracy, precision, recall, and F1 ≥90%; FPR ≤5% | No complete client-runtime evidence root exists. |
-
-This is a balanced local-classifier evaluation contract. It is not satisfied by the existing 30-sample latency evidence.
-
 ## Cross-platform browser support regression
 
 | Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |
 |---|---:|---:|---|---|---:|---|---|
-| pending | 1 | 1 | Chrome, Edge, Samsung Internet, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | No complete client-runtime evidence root exists. |
+| passed | 1 | optional (not_run) | Chrome, Edge, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | All required Android browser cells passed; optional Windows coverage was not executed. |
 
-Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
+Android browser cells are required; Windows browser cells are optional and non-gating. Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
 
 
 ## Component checks

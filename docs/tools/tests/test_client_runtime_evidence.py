@@ -20,64 +20,75 @@ def write_json(path, value):
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
-def model_target():
+def browser_target():
     return {
         "required_platforms": ["android"],
+        "optional_platforms": ["windows"],
+        "required_devices": {"android": 1},
+        "optional_devices": {"windows": 1},
         "required_build_modes": ["release"],
-        "samples_per_class_per_platform": 2,
+        "samples_per_class_per_browser": 2,
         "classes": ["gambling", "non_gambling"],
-        "accuracy_min": 0.5,
-        "precision_min": 0.5,
-        "recall_min": 0.5,
-        "f1_score_min": 0.5,
-        "false_positive_rate_max": 0.5,
-        "evaluation_scope": "deployed_hybrid_artifact",
-        "required_components": ["rules", "url_features", "dom_text_features", "logistic_regression"],
+        "required_browsers": {
+            "android": ["chrome"],
+            "windows": ["chrome"],
+        },
+        "expected_outcomes": {
+            "gambling": "intervention",
+            "non_gambling": "allow",
+        },
         "required_artifacts_by_platform": {
             "android": {"product_flavor": "research", "artifact": "researchRelease"},
+            "windows": {"product_flavor": "pilot", "artifact": "windows-pilot-release"},
         },
         "evidence": {
-            "root": "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation",
+            "root": "flutter/evidence/client-runtime/cross_platform_browser_support_regression",
         },
     }
 
 
-def write_model_cell(root, case, actual_classes, run_id="run_1"):
-    directory = root / "android" / case
+def write_browser_cell(root, platform, browser, case, actual_outcomes, run_id="run_1"):
+    directory = root / platform / browser / case
+    expected_outcome = "intervention" if case == "gambling" else "allow"
+    device_alias = f"{platform}_lab_01"
+    product_flavor = "research" if platform == "android" else "pilot"
+    artifact = "researchRelease" if platform == "android" else "windows-pilot-release"
     samples = []
-    for index, actual_class in enumerate(actual_classes, 1):
-        samples.append({
-            "schema_version": 1,
-            "test": "flutter_local_model_balanced_evaluation",
-            "platform": "android",
-            "case": case,
-            "device_alias": "android_lab_01",
-            "build_mode": "release",
-            "product_flavor": "research",
-            "artifact": "researchRelease",
-            "run_id": run_id,
-            "sample_id": f"{case}_{index}",
-            "expected_class": case,
-            "actual_class": actual_class,
-            "result": "passed" if actual_class == case else "failed",
-        })
+    for index, actual_outcome in enumerate(actual_outcomes, 1):
+        samples.append(
+            {
+                "schema_version": 1,
+                "test": "cross_platform_browser_support_regression",
+                "platform": platform,
+                "browser": browser,
+                "case": case,
+                "device_alias": device_alias,
+                "build_mode": "release",
+                "product_flavor": product_flavor,
+                "artifact": artifact,
+                "run_id": run_id,
+                "sample_id": f"{platform}_{browser}_{case}_{index}",
+                "expected_outcome": expected_outcome,
+                "actual_outcome": actual_outcome,
+                "result": "passed" if actual_outcome == expected_outcome else "failed",
+            }
+        )
     write_json(
         directory / "summary.json",
         {
             "schema_version": 1,
-            "test": "flutter_local_model_balanced_evaluation",
-            "platform": "android",
+            "test": "cross_platform_browser_support_regression",
+            "platform": platform,
+            "browser": browser,
             "case": case,
-            "device_alias": "android_lab_01",
+            "device_alias": device_alias,
             "build_mode": "release",
-            "product_flavor": "research",
-            "artifact": "researchRelease",
+            "product_flavor": product_flavor,
+            "artifact": artifact,
             "run_id": run_id,
             "sample_count": len(samples),
-            "expected_class": case,
-            "correct_sample_count": sum(sample["result"] == "passed" for sample in samples),
-            "evaluation_scope": "deployed_hybrid_artifact",
-            "components": ["rules", "url_features", "dom_text_features", "logistic_regression"],
+            "expected_outcome": expected_outcome,
+            "passed_sample_count": sum(sample["result"] == "passed" for sample in samples),
             "status": "passed" if all(sample["result"] == "passed" for sample in samples) else "failed",
         },
     )
@@ -88,39 +99,64 @@ def write_model_cell(root, case, actual_classes, run_id="run_1"):
 
 
 class ClientRuntimeEvidenceTest(unittest.TestCase):
-    def test_missing_root_is_pending(self):
+    def test_android_required_cells_pass_without_optional_windows(self):
         with tempfile.TemporaryDirectory() as directory:
-            result = MODULE.aggregate_client_runtime("flutter_local_model_balanced_evaluation", model_target(), pathlib.Path(directory))
-        self.assertEqual("pending", result["status"])
-
-    def test_complete_model_cells_are_aggregated(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation"
-            write_model_cell(root, "gambling", ["gambling", "gambling"])
-            write_model_cell(root, "non_gambling", ["non_gambling", "non_gambling"])
+            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/cross_platform_browser_support_regression"
+            write_browser_cell(root, "android", "chrome", "gambling", ["intervention", "intervention"])
+            write_browser_cell(root, "android", "chrome", "non_gambling", ["allow", "allow"])
             result = MODULE.aggregate_client_runtime(
-                "flutter_local_model_balanced_evaluation",
-                model_target(),
+                "cross_platform_browser_support_regression",
+                browser_target(),
                 pathlib.Path(directory),
             )
         self.assertEqual("passed", result["status"])
-        self.assertEqual(1.0, result["metrics"]["accuracy"])
+        self.assertEqual("not_run", result["optional_platforms"]["windows"]["status"])
 
-    def test_incomplete_cell_remains_pending(self):
+    def test_optional_windows_cells_are_accepted_and_non_gating(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/flutter_local_model_balanced_evaluation"
-            write_model_cell(root, "gambling", ["gambling"])
-            write_model_cell(root, "non_gambling", ["non_gambling", "non_gambling"])
+            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/cross_platform_browser_support_regression"
+            write_browser_cell(root, "android", "chrome", "gambling", ["intervention", "intervention"])
+            write_browser_cell(root, "android", "chrome", "non_gambling", ["allow", "allow"])
+            write_browser_cell(root, "windows", "chrome", "gambling", ["intervention", "intervention"])
+            write_browser_cell(root, "windows", "chrome", "non_gambling", ["allow", "allow"])
             result = MODULE.aggregate_client_runtime(
-                "flutter_local_model_balanced_evaluation",
-                model_target(),
+                "cross_platform_browser_support_regression",
+                browser_target(),
+                pathlib.Path(directory),
+            )
+        self.assertEqual("passed", result["status"])
+        self.assertEqual("passed", result["optional_platforms"]["windows"]["status"])
+
+    def test_optional_windows_failure_does_not_downgrade_android(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/cross_platform_browser_support_regression"
+            write_browser_cell(root, "android", "chrome", "gambling", ["intervention", "intervention"])
+            write_browser_cell(root, "android", "chrome", "non_gambling", ["allow", "allow"])
+            write_browser_cell(root, "windows", "chrome", "gambling", ["allow", "allow"])
+            write_browser_cell(root, "windows", "chrome", "non_gambling", ["allow", "allow"])
+            result = MODULE.aggregate_client_runtime(
+                "cross_platform_browser_support_regression",
+                browser_target(),
+                pathlib.Path(directory),
+            )
+        self.assertEqual("passed", result["status"])
+        self.assertEqual("failed", result["optional_platforms"]["windows"]["status"])
+
+    def test_incomplete_required_android_remains_pending(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/cross_platform_browser_support_regression"
+            write_browser_cell(root, "android", "chrome", "gambling", ["intervention"])
+            write_browser_cell(root, "android", "chrome", "non_gambling", ["allow", "allow"])
+            result = MODULE.aggregate_client_runtime(
+                "cross_platform_browser_support_regression",
+                browser_target(),
                 pathlib.Path(directory),
             )
         self.assertEqual("pending", result["status"])
         self.assertEqual(1, result["missing_cells"])
 
     def test_public_schema_rejects_browsing_fields(self):
-        errors = MODULE._forbidden_values({"actual_class": "gambling", "url": "https://invalid.example"}, "sample")
+        errors = MODULE._forbidden_values({"actual_outcome": "allow", "url": "https://invalid.example"}, "sample")
         self.assertTrue(any("forbidden" in error or "URL-like" in error for error in errors))
 
 

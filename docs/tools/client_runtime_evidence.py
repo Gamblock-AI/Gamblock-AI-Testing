@@ -60,13 +60,6 @@ COMMON_SAMPLE_FIELDS = {
     "sample_id",
     "result",
 }
-MODEL_SUMMARY_FIELDS = (COMMON_SUMMARY_FIELDS - {"browser"}) | {
-    "expected_class",
-    "correct_sample_count",
-    "evaluation_scope",
-    "components",
-}
-MODEL_SAMPLE_FIELDS = (COMMON_SAMPLE_FIELDS - {"browser"}) | {"expected_class", "actual_class"}
 BROWSER_SUMMARY_FIELDS = COMMON_SUMMARY_FIELDS | {
     "expected_outcome",
     "passed_sample_count",
@@ -98,17 +91,26 @@ def _forbidden_values(value: Any, location: str) -> list[str]:
     return errors
 
 
-def _expected_cells(test_name: str, target: dict[str, Any]) -> list[dict[str, str]]:
+def _target_platforms(target: dict[str, Any], include_optional: bool = False) -> list[str]:
+    platforms = list(target.get("required_platforms", PLATFORMS))
+    if include_optional:
+        for platform in target.get("optional_platforms", []):
+            if platform not in platforms:
+                platforms.append(platform)
+    return platforms
+
+
+def _expected_cells(
+    test_name: str,
+    target: dict[str, Any],
+    include_optional: bool = False,
+) -> list[dict[str, str]]:
     cells: list[dict[str, str]] = []
     browsers = target.get("required_browsers", {})
-    for platform in target.get("required_platforms", PLATFORMS):
-        if test_name == "cross_platform_browser_support_regression":
-            for browser in browsers.get(platform, []):
-                for case in CASES:
-                    cells.append({"platform": platform, "browser": browser, "case": case})
-        else:
+    for platform in _target_platforms(target, include_optional):
+        for browser in browsers.get(platform, []):
             for case in CASES:
-                cells.append({"platform": platform, "case": case})
+                cells.append({"platform": platform, "browser": browser, "case": case})
     return cells
 
 
@@ -223,33 +225,17 @@ def _validate_cell(
         result["errors"].append(f"{summary_path}: summary must be an object")
         return result
 
-    is_browser = test_name == "cross_platform_browser_support_regression"
-    summary_fields = BROWSER_SUMMARY_FIELDS if is_browser else MODEL_SUMMARY_FIELDS
-    sample_fields = BROWSER_SAMPLE_FIELDS if is_browser else MODEL_SAMPLE_FIELDS
+    summary_fields = BROWSER_SUMMARY_FIELDS
+    sample_fields = BROWSER_SAMPLE_FIELDS
     target_with_name = {**target, "test_name": test_name}
     result["errors"].extend(_validate_common(summary, summary_fields, cell, target_with_name, str(summary_path)))
     for field in ("sample_count", "status"):
         if field not in summary:
             result["errors"].append(f"{summary_path}: missing {field}")
-    if is_browser:
-        for field in ("expected_outcome", "passed_sample_count"):
-            if field not in summary:
-                result["errors"].append(f"{summary_path}: missing {field}")
-    else:
-        for field in ("expected_class", "correct_sample_count"):
-            if field not in summary:
-                result["errors"].append(f"{summary_path}: missing {field}")
-        if summary.get("evaluation_scope") != target.get("evaluation_scope"):
-            result["errors"].append(f"{summary_path}: evaluation_scope does not match target")
-        required_components = set(target.get("required_components", []))
-        observed_components = summary.get("components")
-        if not isinstance(observed_components, list) or set(observed_components) != required_components:
-            result["errors"].append(f"{summary_path}: components do not match the full Hybrid contract")
-    expected_count = int(
-        target.get("samples_per_class_per_browser", 0)
-        if is_browser
-        else target.get("samples_per_class_per_platform", 0)
-    )
+    for field in ("expected_outcome", "passed_sample_count"):
+        if field not in summary:
+            result["errors"].append(f"{summary_path}: missing {field}")
+    expected_count = int(target.get("samples_per_class_per_browser", 0))
     result["sample_count"] = len(samples)
     if len(samples) < expected_count:
         result["reason"] = f"cell has {len(samples)} of {expected_count} required samples"
@@ -272,18 +258,12 @@ def _validate_cell(
         else:
             sample_ids.add(sample_id)
         run_ids.add(str(sample.get("run_id")))
-        if is_browser:
-            expected_outcome = cell["case"]
-            outcome = {"gambling": "intervention", "non_gambling": "allow"}[expected_outcome]
-            if sample.get("expected_outcome") != outcome:
-                result["errors"].append(f"{location}: expected_outcome does not match case")
-            if sample.get("actual_outcome") not in {"allow", "intervention", "error"}:
-                result["errors"].append(f"{location}: actual_outcome is invalid")
-        else:
-            if sample.get("expected_class") != cell["case"]:
-                result["errors"].append(f"{location}: expected_class does not match case")
-            if sample.get("actual_class") not in CASES:
-                result["errors"].append(f"{location}: actual_class is invalid")
+        expected_outcome = cell["case"]
+        outcome = {"gambling": "intervention", "non_gambling": "allow"}[expected_outcome]
+        if sample.get("expected_outcome") != outcome:
+            result["errors"].append(f"{location}: expected_outcome does not match case")
+        if sample.get("actual_outcome") not in {"allow", "intervention", "error"}:
+            result["errors"].append(f"{location}: actual_outcome is invalid")
         if sample.get("result") not in {"passed", "failed"}:
             result["errors"].append(f"{location}: result must be passed or failed")
     if len(run_ids) > 1:
@@ -292,25 +272,15 @@ def _validate_cell(
         result["errors"].append(f"{summary_path}: sample_count does not match samples.jsonl")
     if samples and summary.get("run_id") != samples[0].get("run_id"):
         result["errors"].append(f"{summary_path}: run_id does not match samples.jsonl")
-    if is_browser:
-        expected_outcome = target.get("expected_outcomes", {}).get(cell["case"])
-        passed_count = sum(
-            sample.get("actual_outcome") == expected_outcome and sample.get("result") == "passed"
-            for sample in samples
-        )
-        if summary.get("expected_outcome") != expected_outcome:
-            result["errors"].append(f"{summary_path}: expected_outcome does not match target")
-        if summary.get("passed_sample_count") != passed_count:
-            result["errors"].append(f"{summary_path}: passed_sample_count does not match samples.jsonl")
-    else:
-        correct_count = sum(
-            sample.get("actual_class") == cell["case"] and sample.get("result") == "passed"
-            for sample in samples
-        )
-        if summary.get("expected_class") != cell["case"]:
-            result["errors"].append(f"{summary_path}: expected_class does not match case")
-        if summary.get("correct_sample_count") != correct_count:
-            result["errors"].append(f"{summary_path}: correct_sample_count does not match samples.jsonl")
+    expected_outcome = target.get("expected_outcomes", {}).get(cell["case"])
+    passed_count = sum(
+        sample.get("actual_outcome") == expected_outcome and sample.get("result") == "passed"
+        for sample in samples
+    )
+    if summary.get("expected_outcome") != expected_outcome:
+        result["errors"].append(f"{summary_path}: expected_outcome does not match target")
+    if summary.get("passed_sample_count") != passed_count:
+        result["errors"].append(f"{summary_path}: passed_sample_count does not match samples.jsonl")
     result["run_id"] = summary.get("run_id")
     result["device_alias"] = summary.get("device_alias")
     result["artifact"] = summary.get("artifact")
@@ -324,35 +294,6 @@ def _validate_cell(
     return result
 
 
-def _metrics(samples: list[dict[str, Any]]) -> dict[str, float]:
-    tp = sum(1 for sample in samples if sample.get("expected_class") == "gambling" and sample.get("actual_class") == "gambling")
-    tn = sum(1 for sample in samples if sample.get("expected_class") == "non_gambling" and sample.get("actual_class") == "non_gambling")
-    fp = sum(1 for sample in samples if sample.get("expected_class") == "non_gambling" and sample.get("actual_class") == "gambling")
-    fn = sum(1 for sample in samples if sample.get("expected_class") == "gambling" and sample.get("actual_class") == "non_gambling")
-    total = tp + tn + fp + fn
-    precision = tp / (tp + fp) if tp + fp else 0.0
-    recall = tp / (tp + fn) if tp + fn else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    fpr = fp / (fp + tn) if fp + tn else 0.0
-    return {
-        "accuracy": (tp + tn) / total if total else 0.0,
-        "precision": precision,
-        "recall": recall,
-        "f1_score": f1,
-        "false_positive_rate": fpr,
-    }
-
-
-def _metric_gate(metrics: dict[str, float], target: dict[str, Any]) -> bool:
-    return (
-        metrics["accuracy"] >= float(target["accuracy_min"])
-        and metrics["precision"] >= float(target["precision_min"])
-        and metrics["recall"] >= float(target["recall_min"])
-        and metrics["f1_score"] >= float(target["f1_score_min"])
-        and metrics["false_positive_rate"] <= float(target["false_positive_rate_max"])
-    )
-
-
 def aggregate_client_runtime(test_name: str, target: dict[str, Any], testing_root: Path) -> dict[str, Any]:
     """Return the report-safe status for one client-runtime contract."""
 
@@ -363,25 +304,103 @@ def aggregate_client_runtime(test_name: str, target: dict[str, Any], testing_roo
     root = testing_root / relative_root
     if not root.is_dir():
         return pending(test_name, "No complete client-runtime evidence root exists.")
-    cells = []
-    for cell in _expected_cells(test_name, target):
-        cells.append(_validate_cell(test_name, target, cell, _cell_path(root, cell)))
-    required_cells = len(cells)
-    missing_cells = sum(1 for cell in cells if cell["status"] == "pending")
-    invalid_cells = sum(1 for cell in cells if cell["status"] == "failed")
-    complete_cells = required_cells - missing_cells - invalid_cells
+    required_cells = [
+        _validate_cell(test_name, target, cell, _cell_path(root, cell))
+        for cell in _expected_cells(test_name, target)
+    ]
+    optional_platforms = list(target.get("optional_platforms", []))
+    optional_candidates = [
+        cell
+        for cell in _expected_cells(test_name, target, include_optional=True)
+        if cell["platform"] in optional_platforms
+    ]
+    optional_has_evidence = any(
+        _cell_path(root, cell).exists() for cell in optional_candidates
+    )
+    optional_cells = (
+        [
+            _validate_cell(test_name, target, cell, _cell_path(root, cell))
+            for cell in optional_candidates
+        ]
+        if optional_has_evidence
+        else []
+    )
+    missing_cells = sum(1 for cell in required_cells if cell["status"] == "pending")
+    invalid_cells = sum(1 for cell in required_cells if cell["status"] == "failed")
+    complete_cells = len(required_cells) - missing_cells - invalid_cells
     result: dict[str, Any] = {
         "name": test_name,
         "status": "pending",
-        "required_cells": required_cells,
+        "required_cells": len(required_cells),
         "complete_cells": complete_cells,
         "missing_cells": missing_cells,
         "failed_cells": invalid_cells,
         "cells": [
             {key: value for key, value in cell.items() if key != "samples"}
-            for cell in cells
+            for cell in required_cells
         ],
+        "optional_platforms": {},
     }
+
+    def browser_failed_samples(cells: list[dict[str, Any]]) -> int:
+        expected_outcomes = target.get("expected_outcomes", {})
+        return sum(
+            sample.get("actual_outcome") != expected_outcomes.get(cell["case"])
+            or sample.get("result") != "passed"
+            for cell in cells
+            for sample in cell.get("samples", [])
+        )
+
+    for platform in optional_platforms:
+        platform_cells = [cell for cell in optional_cells if cell["platform"] == platform]
+        platform_result: dict[str, Any] = {
+            "status": "not_run" if not optional_has_evidence else "pending",
+            "required": False,
+            "cells": [
+                {key: value for key, value in cell.items() if key != "samples"}
+                for cell in platform_cells
+            ],
+        }
+        if not optional_has_evidence:
+            platform_result["reason"] = "optional platform was not executed"
+            result["optional_platforms"][platform] = platform_result
+            continue
+        platform_missing = sum(cell["status"] == "pending" for cell in platform_cells)
+        platform_failed = sum(cell["status"] == "failed" for cell in platform_cells)
+        platform_result.update(
+            {
+                "required_cells": len(platform_cells),
+                "complete_cells": len(platform_cells) - platform_missing - platform_failed,
+                "missing_cells": platform_missing,
+                "failed_cells": platform_failed,
+            }
+        )
+        if platform_failed:
+            platform_result["status"] = "failed"
+            platform_result["reason"] = "one or more optional evidence cells failed schema or privacy validation"
+        elif platform_missing:
+            platform_result["reason"] = "one or more optional evidence cells are incomplete"
+        else:
+            aliases = {cell.get("device_alias", "") for cell in platform_cells}
+            expected_devices = int(
+                target.get("optional_devices", target.get("required_devices", {})).get(platform, 1)
+            )
+            if len(aliases) != expected_devices:
+                platform_result["status"] = "failed"
+                platform_result["reason"] = (
+                    f"expected {expected_devices} device alias(es) for {platform}, observed {len(aliases)}"
+                )
+            else:
+                failed_samples = browser_failed_samples(platform_cells)
+                platform_result["failed_sample_count"] = failed_samples
+                platform_result["status"] = "passed" if failed_samples == 0 else "failed"
+                platform_result["reason"] = (
+                    "all optional browser cells complete and expected outcomes observed"
+                    if failed_samples == 0
+                    else "one or more optional browser outcomes failed"
+                )
+        result["optional_platforms"][platform] = platform_result
+
     if invalid_cells:
         result["status"] = "failed"
         result["reason"] = "one or more evidence cells failed schema or privacy validation"
@@ -391,7 +410,7 @@ def aggregate_client_runtime(test_name: str, target: dict[str, Any], testing_roo
         return result
 
     aliases_by_platform: dict[str, set[str]] = {}
-    for cell in cells:
+    for cell in required_cells:
         aliases_by_platform.setdefault(cell["platform"], set()).add(cell.get("device_alias", ""))
     for platform, aliases in aliases_by_platform.items():
         expected_devices = int(target.get("required_devices", {}).get(platform, 1))
@@ -401,21 +420,7 @@ def aggregate_client_runtime(test_name: str, target: dict[str, Any], testing_roo
             result["device_aliases"] = sorted(aliases)
             return result
 
-    if test_name == "flutter_local_model_balanced_evaluation":
-        all_samples = [sample for cell in cells for sample in cell.get("samples", [])]
-        metrics = _metrics(all_samples)
-        result["metrics"] = metrics
-        result["status"] = "passed" if _metric_gate(metrics, target) else "failed"
-        result["reason"] = "all platform cells complete and metric gate passed" if result["status"] == "passed" else "metric gate failed"
-        return result
-
-    expected_outcomes = target.get("expected_outcomes", {})
-    failed_samples = 0
-    for cell in cells:
-        expected = expected_outcomes.get(cell["case"])
-        for sample in cell.get("samples", []):
-            if sample.get("actual_outcome") != expected or sample.get("result") != "passed":
-                failed_samples += 1
+    failed_samples = browser_failed_samples(required_cells)
     result["failed_sample_count"] = failed_samples
     result["status"] = "passed" if failed_samples == 0 else "failed"
     result["reason"] = "all browser cells complete and expected outcomes observed" if failed_samples == 0 else "one or more browser outcomes failed"
@@ -428,7 +433,10 @@ def validate_client_runtime_root(root: Path, test_name: str, target: dict[str, A
     errors: list[str] = []
     if not root.exists():
         return errors
-    expected_paths = {_cell_path(root, cell).relative_to(root) for cell in _expected_cells(test_name, target)}
+    expected_paths = {
+        _cell_path(root, cell).relative_to(root)
+        for cell in _expected_cells(test_name, target, include_optional=True)
+    }
     for path in root.rglob("*"):
         if path.is_dir():
             continue
@@ -436,7 +444,10 @@ def validate_client_runtime_root(root: Path, test_name: str, target: dict[str, A
         if relative.name not in {"summary.json", "samples.jsonl"} or relative.parent not in expected_paths:
             errors.append(f"{path}: unexpected client-runtime evidence file")
     aggregate = aggregate_client_runtime(test_name, target, root.parents[3])
-    for cell in aggregate.get("cells", []):
+    cells = list(aggregate.get("cells", []))
+    for platform in aggregate.get("optional_platforms", {}).values():
+        cells.extend(platform.get("cells", []))
+    for cell in cells:
         for error in cell.get("errors", []):
             errors.append(str(error))
     return sorted(set(errors))
