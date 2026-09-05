@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-04.5`
+Context version: `2026-09-05.1`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -9,9 +9,9 @@ orchestration and public evidence. It does not own product runtime code.
 
 | Area | State | Evidence boundary |
 |---|---|---|
-| Model evaluation | Implemented tooling | Deployment projection and domain-grouped evidence expose a 90%/5% developmental gate plus the explicitly selected report-version gate; v5 retains 95%/2% for historical reproduction and v6 is prepared at 90%/5%. Evidence remains offline/projection evidence, not physical browser, Android, or Windows proof. |
+| Model evaluation | Implemented tooling | Deployment projection and domain-grouped evidence expose the current 90%/5% gate. Evidence remains offline/projection evidence, not physical browser, Android, or Windows proof. |
 | Model evidence storage | Implemented | Permanent aggregate JSON is stored under `model/evidence/aggregate/` and allowlisted aggregate-generated charts under `model/evidence/visuals/`; raw replay inputs remain in ignored `model/private/`. |
-| Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders separate feasibility, the selected report-version `researchRelease` Android/Chrome progress-demo, and retained Android/Windows final-readiness gates. |
+| Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders separate feasibility, the current `researchRelease` Android/Chrome progress-demo, and Android/Windows Chrome Release final-readiness gates. |
 | Structured usability + SUS | Planned protocol | Requires campus/authority confirmation before recruitment; only approved aggregates may later be disclosed. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. Valid evidence and the retest queue are rendered separately. |
 | Windows extension–model runtime | Harness implemented; VM runtime pending | Chrome Release smoke test covers the real extension, authenticated loopback service, current Hybrid-v2 artifact, and intervention path. It requires an interactive Windows VM and is recorded in the Flutter report. |
@@ -31,9 +31,8 @@ orchestration and public evidence. It does not own product runtime code.
 9. `docs/ai/manifest.yaml` — context version and validation contract.
 10. `flutter/config/device-matrix.json` — Android coverage requirements.
 11. `flutter/config/device-register.json` — safe device/provenance register.
-12. `docs/config/targets.json` — v5 machine-readable gates retained for historical reproduction.
-13. `docs/config/targets-vN.json` — future version gates, selectable only after activation.
-14. `../context/progress-targets.md` — umbrella target registry, activation guard, and next-integer report-version rule.
+12. `docs/config/targets.json` — the single active machine-readable target contract.
+13. `../context/progress-targets.md` — umbrella current target contract and evidence boundary.
 
 The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, `browser-extention/`, and `windows/` describe or contain system-specific checks;
@@ -65,11 +64,9 @@ with the exact reason documented in the handoff. See
 fields. The receipt is delivered by the agent and is not a second committed
 summary.
 
-When a user asks for a new progress report, treat it as the next integer
-version after the latest report (v5 → v6, v6 → v7). Keep earlier reports and
-their target configurations read-only. The runner defaults to v5 and requires
-the matching report copy, active registry target, and `targets-vN.json` before
-publishing evidence for a later version.
+The repository has one active progress report and one active target
+configuration. Update them together after reviewing evidence boundaries; do
+not create parallel report copies or target configurations.
 
 ## Evidence ownership
 

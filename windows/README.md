@@ -43,9 +43,9 @@ an opaque reason code; raw pages, URLs, DOM text, screenshots, tokens, and
 browser logs are not emitted or retained by the harness.
 
 The test is intentionally a runtime smoke test, not the full Phase 4 latency
-gate. The selected report version's progress checkpoint is the separate Android
-`researchRelease` demo capture (v5 is the historical PKM v5 checkpoint); Windows
-contributes to the retained final-readiness matrix, which requires the
+gate. The current progress checkpoint is the separate Android
+`researchRelease` demo capture; Windows contributes to the current
+final-readiness matrix, which requires the
 separately validated minimum sample count for every configured
 platform/browser/profile-or-release cell.
 

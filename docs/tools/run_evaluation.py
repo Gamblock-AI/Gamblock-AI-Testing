@@ -52,61 +52,24 @@ MODEL_AGGREGATE_ROOT = MODEL_EVIDENCE_ROOT / "aggregate"
 MODEL_VISUAL_ROOT = MODEL_EVIDENCE_ROOT / "visuals"
 MODEL_PRIVATE_ROOT = TESTING_ROOT / "model/private"
 TARGET_CONFIG_ROOT = TESTING_ROOT / "docs/config"
-DEFAULT_REPORT_VERSION = "v5"
-REPORT_VERSION_PATTERN = re.compile(r"^v([1-9][0-9]*)$")
-
-
-def normalize_report_version(report_version: str) -> str:
-    value = str(report_version).strip().lower()
-    if not REPORT_VERSION_PATTERN.fullmatch(value):
-        raise ValueError("report version must use the form vN, for example v5 or v6")
-    return value
 
 
 def resolve_target_config(
     workspace_root: Path,
-    report_version: str = DEFAULT_REPORT_VERSION,
     require_active: bool = True,
 ) -> tuple[Path, dict[str, Any]]:
-    """Resolve and validate the versioned target configuration.
+    """Resolve and validate the single active target configuration."""
 
-    v5 remains the default historical configuration. Future versions require
-    both their report copy and an explicit active registry entry before they
-    can produce evidence.
-    """
-
-    version = normalize_report_version(report_version)
-    filename = "targets.json" if version == "v5" else f"targets-{version}.json"
-    path = TARGET_CONFIG_ROOT / filename
+    del workspace_root
+    path = TARGET_CONFIG_ROOT / "targets.json"
     if not path.is_file():
-        raise ValueError(f"no target configuration exists for report version {version}: {path.name}")
+        raise ValueError(f"current target configuration is missing: {path.name}")
     try:
         configuration = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ValueError(f"target configuration could not be read: {path}: {error}") from error
-    configured_version = str(configuration.get("report_version", "v5")).lower()
-    if configured_version != version:
-        raise ValueError(
-            f"target configuration {path.name} declares {configured_version}, expected {version}"
-        )
-    if version == "v5" or not require_active:
-        return path, configuration
-
-    report_path = workspace_root / "context" / f"laporan-kemajuan-{version}.md"
-    if not report_path.is_file():
-        raise ValueError(f"{version} is not active: create {report_path.name} before evaluation")
-    registry_path = workspace_root / "context" / "progress-targets.md"
-    target_id = configuration.get("detection_progress_target_id")
-    if not target_id or not registry_path.is_file():
-        raise ValueError(f"{version} is not active: target registry entry is unavailable")
-    registry = registry_path.read_text(encoding="utf-8")
-    marker = re.compile(
-        rf"\|\s*`?{re.escape(str(target_id))}`?\s*\|\s*`?{re.escape(version)}`?\s*\|\s*`?active`?\s*\|"
-    )
-    if not marker.search(registry):
-        raise ValueError(f"{version} is not active: registry target {target_id} must be active")
-    if str(configuration.get("activation_status", "")).lower() != "active":
-        raise ValueError(f"{version} is not active: {path.name} must declare activation_status=active")
+    if require_active and str(configuration.get("activation_status", "")).lower() != "active":
+        raise ValueError(f"current target configuration must declare activation_status=active: {path.name}")
     return path, configuration
 
 
@@ -233,9 +196,21 @@ def read_android_summary() -> dict[str, Any]:
     required_families = set(matrix["required_oem_families"])
     required_scenarios = set(matrix["scenarios"])
     coverage_complete = required_families <= observed_families and required_scenarios <= observed_scenarios
+    settings_removal_limitations = sum(
+        1
+        for record in records
+        if record.get("failure_code") == "removal_not_blocked"
+        and record.get("surface") == "settings"
+    )
+    interpretation = (
+        "Android/OEM Settings limitation; not interpreted as a Flutter code defect."
+        if settings_removal_limitations
+        else "No Android/OEM limitation classification recorded."
+    )
     return {
         "name": "android_anti_uninstall",
         "status": "passed" if aggregate["passed"] and coverage_complete else "partial" if aggregate["passed"] else "failed",
+        "interpretation": interpretation,
         "sample_count": aggregate["sample_count"],
         "group_count": aggregate["group_count"],
         "passed_group_count": sum(group["passed"] for group in aggregate["groups"]),
@@ -247,7 +222,6 @@ def read_android_summary() -> dict[str, Any]:
 
 def read_latency_summary(
     targets: dict[str, Any] | None = None,
-    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> dict[str, Any]:
     ledgers = evidence_ledger_paths("phase4-latency.jsonl")
     if targets is None:
@@ -291,7 +265,7 @@ def read_latency_summary(
             "coverage_complete": aggregate["coverage_complete"],
             "missing_coverage_count": len(aggregate["missing_coverage"]),
         })
-    progress_name = f"pkm_progress_{normalize_report_version(report_version)}_demo"
+    progress_name = "progress_demo"
     progress = next(item for item in checkpoints if item["name"] == progress_name)
     return {
         "name": "phase4_latency",
@@ -303,7 +277,6 @@ def read_latency_summary(
 def run_model_replay(
     workspace_root: Path,
     target_config_path: Path | None = None,
-    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     target_config_path = target_config_path or TARGET_CONFIG_ROOT / "targets.json"
     model_root = workspace_root / "gamblock-ai-model"
@@ -356,7 +329,6 @@ def run_model_replay(
             projection = json.loads(projection_output.read_text(encoding="utf-8"))
             metrics = projection.get("evaluation", {}).get("deployed_hybrid", {})
             projection_result["aggregate"] = {
-                "report_version": projection.get("report_version", report_version),
                 "target_configuration": projection.get("target_configuration", {}),
             }
             projection_result["aggregate"].update({
@@ -369,7 +341,6 @@ def run_model_replay(
             grouped = json.loads(grouped_output.read_text(encoding="utf-8"))
             metrics = grouped.get("evaluation", {}).get("final_test", {})
             grouped_result["aggregate"] = {
-                "report_version": grouped.get("report_version", report_version),
                 "target_configuration": grouped.get("target_configuration", {}),
                 "evidence_maturity": grouped.get("evidence_maturity"),
                 "samples": metrics.get("samples"),
@@ -518,7 +489,7 @@ def run_code_checks(
         ("client_python_contract_unit", [sys.executable, "-m", "unittest", "discover", "-s", "test/scripts", "-p", "*test.py"], workspace_root / "gamblock_ai_apps"),
     ]
     if include_flutter and (selected_names is None or "flutter_pattern_interrupt_unit" in selected_names):
-        commands.append(("flutter_pattern_interrupt_unit", ["flutter", "test", "test/features/pattern_interrupt/pattern_interrupt_screen_test.dart"], workspace_root / "gamblock_ai_apps"))
+        commands.append(("flutter_pattern_interrupt_unit", ["flutter", "test", "test/features/pattern_interrupt"], workspace_root / "gamblock_ai_apps"))
     elif selected_names is None or "flutter_pattern_interrupt_unit" in selected_names:
         results = [pending("flutter_pattern_interrupt_unit", "Use --include-flutter explicitly on a writable Flutter SDK installation.")]
     for name, command, cwd in commands:
@@ -720,19 +691,22 @@ def render_flutter_report(
     checks: list[dict[str, Any]],
     android_records: list[dict[str, Any]],
     device_register: dict[str, Any],
-    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> str:
-    report_version = normalize_report_version(report_version)
     sections = [
         "## Android anti-uninstall",
         "",
-        "| Status | Samples | Groups | OEM families | Scenarios | Coverage complete |",
-        "|---|---:|---:|---:|---:|---|",
-        f"| {android.get('status', 'pending')} | {android.get('sample_count', 0)} | {android.get('group_count', 0)} | {android.get('oem_family_count', 0)} | {android.get('scenario_count', 0)} | {android.get('coverage_complete', False)} |",
+        "| Status | Interpretation | Samples | Groups | OEM families | Scenarios | Coverage complete |",
+        "|---|---|---:|---:|---:|---:|---|",
+        f"| {android.get('status', 'pending')} | {android.get('interpretation', 'Not classified.')} | {android.get('sample_count', 0)} | {android.get('group_count', 0)} | {android.get('oem_family_count', 0)} | {android.get('scenario_count', 0)} | {android.get('coverage_complete', False)} |",
+        "",
+        "## Android anti-uninstall interpretation",
+        "",
+        "The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.",
+        "The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.",
         "",
         "## Phase 4 latency",
         "",
-        f"The progress-report status is the `pkm_progress_{report_version}_demo` checkpoint. Final readiness remains a separate retained gate.",
+        "The progress-report status is the `progress_demo` checkpoint. Final readiness remains a separate retained gate.",
         "",
         "| Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |",
         "|---|---|---:|---:|---:|---|---:|",
@@ -822,11 +796,9 @@ def render_model_report(
     projection: dict[str, Any],
     grouped: dict[str, Any],
     checks: list[dict[str, Any]],
-    report_version: str = DEFAULT_REPORT_VERSION,
 ) -> str:
-    report_version = normalize_report_version(report_version)
-    progress_gate_name = f"pkm_progress_{report_version}"
-    progress_gate_label = f"PKM {report_version}"
+    progress_gate_name = "progress_gate"
+    progress_gate_label = "Current target"
     grouped_aggregate = grouped.get("aggregate", {})
     projection_aggregate = projection.get("aggregate", {})
     selected_target_configuration = (
@@ -834,10 +806,9 @@ def render_model_report(
         or projection_aggregate.get("target_configuration", {})
     )
     if not selected_target_configuration:
-        target_filename = "targets.json" if report_version == "v5" else f"targets-{report_version}.json"
         try:
             selected_target_configuration = json.loads(
-                (TARGET_CONFIG_ROOT / target_filename).read_text(encoding="utf-8")
+                (TARGET_CONFIG_ROOT / "targets.json").read_text(encoding="utf-8")
             )
         except (OSError, json.JSONDecodeError):
             selected_target_configuration = {}
@@ -845,7 +816,7 @@ def render_model_report(
     if not target_id:
         target_id = selected_target_configuration.get(
             "target_id",
-            f"{report_version}-detection-pkm",
+            "detection-progress",
         )
     artifact_contract = projection_aggregate.get("artifact_contract", {})
     ablations = grouped_aggregate.get("ablations", {})
@@ -861,7 +832,7 @@ def render_model_report(
     scope_exclusions = grouped_aggregate.get("scope_exclusions", {})
     limitations = grouped_aggregate.get("limitations", {})
     sections = [
-        f"Target configuration: `{report_version}` (`{target_id}`).",
+        f"Target configuration: `current` (`{target_id}`).",
         "",
         "## Runtime projection",
         "",
@@ -1080,11 +1051,6 @@ def main() -> int:
     parser.add_argument("--run-model-tests", action="store_true")
     parser.add_argument("--run-code-tests", action="store_true")
     parser.add_argument(
-        "--report-version",
-        default=DEFAULT_REPORT_VERSION,
-        help="Progress-report version whose target config should be used (default: v5).",
-    )
-    parser.add_argument(
         "--component",
         action="append",
         choices=sorted(COMPONENT_REPORT_KEYS),
@@ -1099,21 +1065,17 @@ def main() -> int:
 
     workspace_root = args.workspace_root.resolve()
     try:
-        target_config_path, target_configuration = resolve_target_config(
-            workspace_root,
-            args.report_version,
-        )
-        report_version = normalize_report_version(args.report_version)
+        target_config_path, target_configuration = resolve_target_config(workspace_root)
     except ValueError as error:
         parser.error(str(error))
     android_records, android_errors, android_ledger_exists = read_android_evidence()
     if android_errors:
         android_records = []
     android = read_android_summary()
-    latency = read_latency_summary(target_configuration, report_version)
+    latency = read_latency_summary(target_configuration)
     device_register = read_device_register()
     if args.run_model_replay:
-        projection, grouped = run_model_replay(workspace_root, target_config_path, report_version)
+        projection, grouped = run_model_replay(workspace_root, target_config_path)
     else:
         projection = pending("runtime_projection", "Not requested; use --run-model-replay explicitly.")
         grouped = pending("domain_grouped_model", "Not requested; use --run-model-replay explicitly.")
@@ -1134,7 +1096,6 @@ def main() -> int:
             checks,
             android_records,
             device_register,
-            report_version,
         )
     if "golang" in selected_reports:
         reports["golang"] = render_component_report("Gamblock-AI Golang Report", "This report covers the Go backend component checks.", checks, COMPONENT_CHECK_NAMES["backend"], "backend_unit")
@@ -1143,7 +1104,7 @@ def main() -> int:
     if "browser-extention" in selected_reports:
         reports["browser-extention"] = render_component_report("Gamblock-AI Browser Extention Report", "This report covers the passive browser extension component checks.", checks, {"extension_unit"}, "extension_unit")
     if "model" in selected_reports:
-        reports["model"] = render_model_report(projection, grouped, model_checks, report_version)
+        reports["model"] = render_model_report(projection, grouped, model_checks)
     outputs: dict[str, str] = {}
     for technology, content in reports.items():
         output = args.output_dir / REPORT_PATHS[technology]

@@ -30,11 +30,8 @@ and temporary candidate artifacts remain local in ignored `model/private/`.
 
 The evaluator reports two named gates: `developmental_checkpoint` (accuracy,
 precision, recall, and F1 >=90%; FPR <=5%) for candidate screening, and the
-report-version gate selected by `--report-version`. v5 retains
-`pkm_progress_v5` (each metric >=95%; FPR <=2%) for historical reproduction;
-the approved v6 configuration uses `pkm_progress_v6` (each metric >=90%; FPR
-<=5%) and is inactive until its report and registry target are active. Neither
-gate alters the PKM proposal or promotes a candidate automatically. The runtime
+current `progress_gate` with the same 90%/5% threshold. Neither gate alters
+the PKM proposal or promotes a candidate automatically. The runtime
 projection also checks the size and ONNX-hash provenance of the serialized
 Hybrid model/rules actually loaded by the client, while keeping physical
 Android/Windows runtime coverage separate.

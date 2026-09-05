@@ -41,11 +41,10 @@ For model evaluation, it also writes the permanent aggregate JSON evidence to
 `model/evidence/visuals/`. Sensitive model inputs remain in ignored
 `model/private/` and are never copied into public evidence.
 
-The runner defaults to the v5 configuration for historical reproduction. A
-future report is selected explicitly with `--report-version vN`; the matching
-`targets-vN.json`, report copy, and active target-registry entry are all
-required before evidence can be published. The next report version is always
-the next integer after the latest report in scope.
+The runner uses the single active `docs/config/targets.json` configuration.
+There is no report selector or parallel target configuration. The
+current report and target contract are reviewed together before evidence is
+published.
 
 Running the tool is part of the mandatory test handoff, but it does not commit
 or push changes. After it finishes, inspect `git status`/`git diff`, run the

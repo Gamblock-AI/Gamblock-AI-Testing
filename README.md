@@ -14,9 +14,8 @@ Component repositories link here instead of copying test results.
 
 | Path | Responsibility |
 |---|---|
-| `docs/config/targets.json` | v5 machine-readable detection/artifact/latency gates retained for historical reproduction |
-| `docs/config/targets-vN.json` | Versioned future gates selected only after the matching report and registry target are active |
-| `../context/progress-targets.md` | Versioned target registry and vN→v(N+1) activation workflow |
+| `docs/config/targets.json` | Single active detection/artifact/latency target contract |
+| `../context/progress-targets.md` | Current target contract and evidence boundary |
 | `docs/testing-index.md` | Link-only index of canonical reports |
 | `docs/tools/` | Cross-system runner, validators, and tooling tests |
 | `flutter/` | Flutter/Android anti-uninstall and latency tooling/tests |
@@ -40,11 +39,9 @@ python3 gamblock-ai-testing/docs/tools/verify_public_evidence.py
 The evaluation runner records missing physical-device and Windows evidence as
 `pending`; it never upgrades documentation-only claims to runtime proof.
 
-The report-version boundary, next-integer version rule, and target lifecycle are maintained in the
+The current target contract and evidence boundary are maintained in the
 umbrella's [`context/progress-targets.md`](../context/progress-targets.md).
-Keep the v5 configuration available for historical reproduction; a future
-`targets-vN.json` becomes selectable only when its report copy and approved
-registry target are explicitly activated.
+The runner uses one active configuration and one active progress report.
 
 For model evidence, use the explicit evaluation and unit-test flags:
 
@@ -61,7 +58,7 @@ All permanent model outputs are stored below `model/evidence/`; raw prediction
 tables used as replay input remain only in the ignored `model/private/` staging
 area. The grouped candidate is not an automatic replacement for the active
 client artifact. The generated result distinguishes the 90%/5% developmental
-gate from the report-version acceptance gate, and records the active
+gate from the current acceptance gate, and records the active
 serialized Hybrid artifact's size/provenance contract. Device-runtime is an
 explicit exclusion of this model progress run.
 

@@ -100,9 +100,7 @@ not evidence that the APK is broken.
    are merged atomically; duplicate `sample_id` values and a folder/record
    alias mismatch stop the command before publication.
 
-   The last command uses the active report configuration (currently v5).
-   Use `--report-version v6` only after the v6 report copy and registry
-   target have both been activated.
+   The last command uses the single active current report configuration.
 
 ### Failure recovery and cleanup
 

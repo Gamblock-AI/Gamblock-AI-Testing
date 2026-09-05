@@ -28,7 +28,6 @@ WORKSPACE_ROOT = TESTING_ROOT.parent
 MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
 APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"
 TARGETS_PATH = TESTING_ROOT / "docs/config/targets.json"
-REPORT_VERSION = "v5"
 
 
 def configure_workspace(
@@ -37,7 +36,7 @@ def configure_workspace(
 ) -> None:
     """Point the evaluator at an umbrella or standalone sibling workspace."""
 
-    global WORKSPACE_ROOT, MODEL_ROOT, APP_ROOT, TARGETS_PATH, REPORT_VERSION
+    global WORKSPACE_ROOT, MODEL_ROOT, APP_ROOT, TARGETS_PATH
     WORKSPACE_ROOT = workspace_root.resolve()
     MODEL_ROOT = WORKSPACE_ROOT / "gamblock-ai-model"
     APP_ROOT = WORKSPACE_ROOT / "gamblock_ai_apps"
@@ -50,7 +49,6 @@ def configure_workspace(
         configuration = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ValueError(f"target configuration could not be read: {TARGETS_PATH}: {error}") from error
-    REPORT_VERSION = str(configuration.get("report_version", "v5"))
 TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+")
 RULE_SEPARATOR_RE = re.compile(r"[^a-z0-9_]+")
 
@@ -333,9 +331,8 @@ def build_report(
     fixtures_path: Path | None = None,
 ) -> dict[str, Any]:
     target_configuration = json.loads(TARGETS_PATH.read_text(encoding="utf-8"))
-    report_version = str(target_configuration.get("report_version", REPORT_VERSION))
     target_id = str(
-        target_configuration.get("detection_progress_target_id", f"{report_version}-detection-pkm")
+        target_configuration.get("detection_progress_target_id", "detection-progress")
     )
     model_path = model_path or APP_ROOT / "assets/protection/gamblock-lr-v2.json"
     rules_path = rules_path or APP_ROOT / "assets/protection/gamblock-rules-v2.json"
@@ -390,11 +387,10 @@ def build_report(
         "schema_version": 1,
         "report_kind": "deployed_hybrid_projection",
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "report_version": report_version,
         "target_configuration": {
-            "progress_gate": f"pkm_progress_{report_version}",
+            "progress_gate": "progress_gate",
             "target_id": target_id,
-            "path_class": "versioned_testing_config",
+            "path_class": "current_testing_config",
         },
         "evidence_maturity": "provisional",
         "projection": {
@@ -444,7 +440,7 @@ def main() -> int:
     parser.add_argument(
         "--targets-config",
         type=Path,
-        help="Versioned target configuration; defaults to the active v5 config.",
+        help="Target configuration; defaults to the active current config.",
     )
     args = parser.parse_args()
     configure_workspace(args.workspace_root, args.targets_config)

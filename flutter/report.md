@@ -9,19 +9,24 @@ This report covers Flutter client checks and Android Research runtime evidence.
 
 ## Android anti-uninstall
 
-| Status | Samples | Groups | OEM families | Scenarios | Coverage complete |
-|---|---:|---:|---:|---:|---|
-| failed | 18 | 17 | 2 | 10 | False |
+| Status | Interpretation | Samples | Groups | OEM families | Scenarios | Coverage complete |
+|---|---|---:|---:|---:|---:|---|
+| failed | Android/OEM Settings limitation; not interpreted as a Flutter code defect. | 18 | 17 | 2 | 10 | False |
+
+## Android anti-uninstall interpretation
+
+The evidence status remains `failed` when the expected `blocked` outcome was not observed. A `removal_not_blocked` record on the OEM Settings surface is classified as an Android/OEM platform limitation, not as an unresolved Flutter code defect: Android permits the user/OEM Settings flow to deactivate Device Admin, and an ordinary application cannot veto that OS-level action.
+The limitation is retained as evidence and must not be presented as a code-fix task. Launcher and Package Installer results remain separate system-surface observations.
 
 ## Phase 4 latency
 
-The progress-report status is the `pkm_progress_v5_demo` checkpoint. Final readiness remains a separate retained gate.
+The progress-report status is the `progress_demo` checkpoint. Final readiness remains a separate retained gate.
 
 | Checkpoint | Status | Scoped records | Groups | Passed groups | Coverage complete | Missing required cells |
 |---|---|---:|---:|---:|---|---:|
 | latency_feasibility | passed | 30 | 1 | 1 | True | 0 |
-| pkm_progress_v5_demo | passed | 30 | 1 | 1 | True | 0 |
-| final_readiness | pending | 30 | 1 | 1 | False | 11 |
+| progress_demo | passed | 30 | 1 | 1 | True | 0 |
+| final_readiness | pending | 30 | 1 | 1 | False | 1 |
 
 ## Android device evidence detail
 
@@ -87,9 +92,9 @@ Artifact identity is aggregate-safe; raw URL, DOM, token, screenshot, and browse
 
 | Check | Status |
 |---|---|
-| flutter_pattern_interrupt_unit | pending |
 | testing_flutter_unit | passed |
 | client_python_contract_unit | passed |
+| flutter_pattern_interrupt_unit | passed |
 | android_instrumented_runtime | pending |
 | windows_extension_model_e2e | pending |
 

@@ -1,6 +1,6 @@
 # Gamblock-AI Testing Repository Rules
 
-Context version: `2026-09-04.5`
+Context version: `2026-09-05.1`
 
 This repository owns cross-repository test orchestration and public evidence
 for Gamblock-AI. Product source code and production unit tests remain in their
@@ -19,10 +19,9 @@ receipt is not a second report and is not committed by default.
 - Each technology's `<technology>/report.md` is its only human-readable
   canonical report; `docs/testing-index.md` is a link-only index.
 - `docs/ai/` explains the workflow and current capability boundaries.
-- The umbrella `../context/progress-targets.md` is the versioned target
-  registry. `docs/config/targets.json` remains the v5 machine configuration;
-  later versions use separate `targets-vN.json` files and an explicit runner
-  selector only after the matching report and registry target are active.
+- The umbrella `../context/progress-targets.md` is the current target contract.
+  `docs/config/targets.json` is the single active machine configuration and is
+  used directly by the runner.
 - `docs/ai/pkm-usability-testing.md` defines the future structured task and
   SUS protocol; it contains no participant results or raw study material.
 - Model replay is the exception to the runtime-ledger layout: its validated,

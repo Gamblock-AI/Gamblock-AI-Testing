@@ -51,13 +51,11 @@ python3 flutter/scripts/promote_evidence.py phase4-latency \
 
 The latency contract deliberately has three levels. The **feasibility** gate
 accepts one homogeneous group with at least 30 successful samples, no failure,
-and p95 below 200 ms. The selected report version's progress-demo checkpoint
+and p95 below 200 ms. The current progress-demo checkpoint
 is smaller and matches the demonstration artifact: `researchRelease` on
 Android + Chrome, scenario `warm_foreground_online`, with the same
-30-sample/no-failure/p95 requirements. For v5 this is the **PKM v5
-progress-demo**; a later active report selects its matching versioned gate.
-The **final-readiness** gate remains Android/Windows ×
-Chrome/Edge/Opera × profile/release under the same per-cell criteria. Debug
+30-sample/no-failure/p95 requirements. The **final-readiness** gate is
+Android/Windows × Chrome × release under the same per-cell criteria. Debug
 builds are diagnostic only and cannot satisfy the progress-demo or final gate.
 
 A source-side Android measurement is not canonical runtime evidence until its

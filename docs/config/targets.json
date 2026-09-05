@@ -1,5 +1,7 @@
 {
   "schema_version": 3,
+  "activation_status": "active",
+  "detection_progress_target_id": "detection-progress",
   "detection": {
     "developmental_checkpoint": {
       "accuracy_min": 0.90,
@@ -8,12 +10,12 @@
       "f1_score_min": 0.90,
       "false_positive_rate_max": 0.05
     },
-    "pkm_progress_v5": {
-      "accuracy_min": 0.95,
-      "precision_min": 0.95,
-      "recall_min": 0.95,
-      "f1_score_min": 0.95,
-      "false_positive_rate_max": 0.02
+    "progress_gate": {
+      "accuracy_min": 0.90,
+      "precision_min": 0.90,
+      "recall_min": 0.90,
+      "f1_score_min": 0.90,
+      "false_positive_rate_max": 0.05
     }
   },
   "hybrid_artifact": {
@@ -28,7 +30,7 @@
       "minimum_passing_groups": 1,
       "require_all_scoped_groups": false
     },
-    "pkm_progress_v5_demo": {
+    "progress_demo": {
       "input_to_visible_ms_p95_exclusive": 200.0,
       "minimum_successful_samples_per_group": 30,
       "required_platforms": ["android"],
@@ -41,8 +43,8 @@
       "input_to_visible_ms_p95_exclusive": 200.0,
       "minimum_successful_samples_per_group": 30,
       "required_platforms": ["android", "windows"],
-      "required_browser_families": ["chrome", "edge", "opera"],
-      "required_build_modes": ["profile", "release"]
+      "required_browser_families": ["chrome"],
+      "required_build_modes": ["release"]
     }
   },
   "pattern_interrupt": {

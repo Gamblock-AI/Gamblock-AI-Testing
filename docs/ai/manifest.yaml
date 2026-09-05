@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-04.5"
+context_version: "2026-09-05.1"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -47,7 +47,6 @@ required_context:
   - docs/ai/testing-run-receipt.md
   - docs/ai/pkm-usability-testing.md
   - docs/ai/manifest.yaml
-  - docs/config/targets-v6.json
   - docs/config/targets.json
   - docs/testing-index.md
   - docs/tools/README.md

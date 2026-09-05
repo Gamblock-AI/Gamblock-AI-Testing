@@ -65,29 +65,51 @@ class RunEvaluationReportTest(unittest.TestCase):
             paths,
         )
 
-    def test_default_target_config_is_v5(self):
-        path, config = RUNNER.resolve_target_config(ROOT.parent, "v5")
+    def test_current_target_config_is_active(self):
+        path, config = RUNNER.resolve_target_config(ROOT.parent)
 
         self.assertEqual("targets.json", path.name)
+        self.assertEqual("active", config["activation_status"])
         self.assertNotIn("report_version", config)
-        self.assertIn("pkm_progress_v5", config["detection"])
-
-    def test_v6_target_config_requires_report_and_registry_activation(self):
-        with self.assertRaisesRegex(ValueError, "laporan-kemajuan-v6.md"):
-            RUNNER.resolve_target_config(ROOT.parent, "v6")
-
-    def test_v6_target_config_can_be_inspected_before_activation(self):
-        path, config = RUNNER.resolve_target_config(ROOT.parent, "v6", require_active=False)
-
-        self.assertEqual("targets-v6.json", path.name)
-        self.assertEqual("approved", config["activation_status"])
-        self.assertEqual("v6-detection-progress", config["detection_progress_target_id"])
-        self.assertIn("pkm_progress_v6", config["detection"])
+        self.assertIn("progress_gate", config["detection"])
+        self.assertEqual(["chrome"], config["latency"]["final_readiness"]["required_browser_families"])
+        self.assertEqual(["release"], config["latency"]["final_readiness"]["required_build_modes"])
 
     def test_flutter_component_includes_windows_extension_model_e2e(self):
         self.assertIn(
             "windows_extension_model_e2e",
             RUNNER.check_names_for_components(["flutter"]),
+        )
+
+    def test_flutter_pattern_interrupt_check_runs_the_whole_test_directory(self):
+        with mock.patch.object(
+            RUNNER,
+            "run_command",
+            side_effect=lambda name, *_args: {"name": name, "status": "passed"},
+        ) as run_command:
+            checks = RUNNER.run_code_checks(
+                ROOT.parent,
+                include_flutter=True,
+                components=["flutter"],
+            )
+
+        self.assertEqual(
+            [
+                "testing_flutter_unit",
+                "client_python_contract_unit",
+                "flutter_pattern_interrupt_unit",
+                "android_instrumented_runtime",
+                "windows_extension_model_e2e",
+            ],
+            [check["name"] for check in checks],
+        )
+        flutter_call = next(
+            call for call in run_command.call_args_list
+            if call.args[0] == "flutter_pattern_interrupt_unit"
+        )
+        self.assertEqual(
+            ["flutter", "test", "test/features/pattern_interrupt"],
+            flutter_call.args[1],
         )
 
     def test_windows_runtime_is_pending_off_windows(self):
@@ -135,13 +157,18 @@ class RunEvaluationReportTest(unittest.TestCase):
 
     def test_flutter_report_renders_windows_runtime_status(self):
         report = RUNNER.render_flutter_report(
-            {"status": "pending"},
+            {
+                "status": "failed",
+                "interpretation": "Android/OEM Settings limitation; not interpreted as a Flutter code defect.",
+            },
             {"status": "pending"},
             [{"name": "windows_extension_model_e2e", "status": "pending", "reason": "windows_required"}],
             [],
             {"devices": []},
         )
 
+        self.assertIn("Android/OEM Settings limitation", report)
+        self.assertIn("not as an unresolved Flutter code defect", report)
         self.assertIn("## Windows extension–model runtime", report)
         self.assertIn("| windows_extension_model_e2e | pending |", report)
         self.assertIn("windows_required", report)
@@ -380,17 +407,16 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertIn("case_variation", report)
         self.assertNotIn("https://", report)
 
-    def test_model_report_uses_selected_progress_gate_label(self):
+    def test_model_report_uses_current_progress_gate_label(self):
         report = RUNNER.render_model_report(
             {"status": "pending"},
             {"status": "pending"},
             [],
-            "v6",
         )
 
-        self.assertIn("Target configuration: `v6` (`v6-detection-progress`).", report)
-        self.assertIn("PKM v6", report)
-        self.assertNotIn("PKM v5", report)
+        self.assertIn("Target configuration: `current` (`detection-progress`).", report)
+        self.assertIn("Current target", report)
+        self.assertNotIn("PKM", report)
 
 
 if __name__ == "__main__":
