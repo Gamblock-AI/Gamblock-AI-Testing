@@ -50,7 +50,7 @@
       "samples_per_class_per_browser": 5,
       "classes": ["gambling", "non_gambling"],
       "required_browsers": {
-        "android": ["chrome", "edge", "brave", "firefox", "samsung_internet", "xiaomi_browser"],
+        "android": ["chrome", "edge", "brave", "firefox", "samsung_internet", "xiaomi_browser", "upx_browser"],
         "windows": ["chrome", "edge", "brave", "opera", "firefox"]
       },
       "expected_outcomes": {

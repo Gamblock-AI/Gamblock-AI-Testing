@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-13.2`
+Context version: `2026-09-13.3`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -14,7 +14,7 @@ orchestration and public evidence. It does not own product runtime code.
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders feasibility plus the current `researchRelease` Android/Chrome progress-demo. The former final-readiness latency gate is replaced by the browser-support runtime contract. |
 | Structured usability + SUS | Planned protocol | Requires campus/authority confirmation before recruitment; only approved aggregates may later be disclosed. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. The device register is provenance metadata, not a separate test or evidence result. |
-| Cross-platform browser support regression | Contract and public-cell validator implemented; Android runtime passed and recorded for all required browsers; optional Windows runtime not run | One required Android device covers Chrome, Edge, Brave, Firefox, Samsung Internet, and Xiaomi Browser; optional Windows coverage uses Chrome, Edge, Brave, Opera, and Firefox with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
+| Cross-platform browser support regression | Contract and public-cell validator implemented; the recorded six-browser Android batch remains valid, while the newly required UPX Browser cell is pending its signed Research-release 5+5 batch; optional Windows runtime not run | One required Android device covers Chrome, Edge, Brave, Firefox, Samsung Internet, Xiaomi Browser, and UPX Browser; optional Windows coverage uses Chrome, Edge, Brave, Opera, and Firefox with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks; the website check includes the complete Vitest and Playwright E2E suites. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 

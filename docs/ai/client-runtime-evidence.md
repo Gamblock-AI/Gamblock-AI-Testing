@@ -34,7 +34,7 @@ The configured browser directories are:
 
 | Platform | Browser directories |
 |---|---|
-| Android | `chrome`, `edge`, `brave`, `firefox`, `samsung_internet`, `xiaomi_browser` |
+| Android | `chrome`, `edge`, `brave`, `firefox`, `samsung_internet`, `xiaomi_browser`, `upx_browser` |
 | Windows | `chrome`, `edge`, `brave`, `opera`, `firefox` |
 
 Android is the required platform. Windows is optional and non-gating when
