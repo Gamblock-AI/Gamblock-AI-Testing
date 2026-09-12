@@ -66,7 +66,7 @@ Service and cross-OEM interpretation are maintained in
 
 | Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |
 |---|---:|---:|---|---|---:|---|---|
-| passed | 1 | optional (not_run) | Chrome, Edge, Brave, Firefox, Samsung Internet, Xiaomi Browser | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | all browser cells complete and expected outcomes observed |
+| passed | 1 | optional (not_run) | Chrome, Edge, Brave, Firefox, Samsung Internet, Xiaomi Browser, Upx Browser | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | all browser cells complete and expected outcomes observed |
 
 Android is the required platform. Windows evidence is optional and non-gating when present. Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
 
@@ -78,16 +78,6 @@ Android is the required platform. Windows evidence is optional and non-gating wh
 | testing_flutter_unit | passed |
 | client_python_contract_unit | passed |
 | flutter_pattern_interrupt_unit | passed |
-
-## Supplemental explicit verification
-
-These checks were executed explicitly on 2026-09-05 and are recorded as
-aggregate results only:
-
-| Check | Status | Aggregate result |
-|---|---|---|
-| flutter_test_full | passed | `flutter test` completed with 116 tests passed |
-| flutter_verify | passed | `./scripts/verify.sh` completed l10n parity validation and `flutter analyze` with no issues |
 
 ## Interpretation limits
 
