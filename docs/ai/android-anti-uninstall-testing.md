@@ -24,7 +24,11 @@ Required scenario families:
 - Accessibility disable and clear-data actions must remain distinguishable from
   uninstall;
 - process kill, force-stop, and reboot must be recorded as recovery scenarios;
-- valid-grant removal is the only normal removal path;
+- partner-approved and two-admin emergency grants are the only controlled
+  removal authorities;
+- cancelling an approved system uninstall must leave the package installed,
+  consume the grant, report degraded Device Admin state, and require an
+  explicit repair action rather than reopening Settings automatically;
 - invalid, expired, or wrong-device grants must not authorize removal.
 
 The required OEM families and scenario list are versioned in
@@ -75,9 +79,9 @@ release APK with a debug/profile APK during the same run.
 
 1. Use a disposable device and a synthetic fixture; do not use participant
    accounts or real browsing content.
-2. Open the Research app and approve Device Admin and Accessibility through the
-   Android system UI. Android does not permit the app to silently re-enable
-   Accessibility.
+2. Open the Research app and use the explicit setup actions to approve Device
+   Admin first and Accessibility second. Returning to the app must not
+   automatically reopen either Android settings page.
 3. Run `preflight` and continue only when the package, Device Admin,
    Accessibility service, and `:protection` process are all healthy.
 4. Run `capture-before` with a new `run_id`, `sample_id`, device alias, OEM
@@ -107,11 +111,16 @@ The expected outcome with `grant_state=none` is `blocked`: the package and
 administrator remain active. If MIUI reaches the package-installer confirmation
 and the package is removed, record `actual_outcome=failed` and
 `failure_code=removal_not_blocked`; never relabel that observation as a pass.
-Canceling the dialog is a different observation and must be recorded with its
-actual outcome.
+Canceling an unapproved dialog is a different observation and must be recorded
+with its actual outcome. For `cancelled_valid_grant_removal`, cancel only after
+the partner/emergency grant has been accepted and the trusted system installer
+opens; record the package as present, the grant as consumed, the administrator
+as inactive, and the app's degraded repair state. Reactivation is a separate,
+explicit setup action.
 
 Launcher, Package Installer, Accessibility-disable, clear-data, force-stop,
-process-kill, and reboot are separate scenarios. Capture and record each one
+process-kill, reboot, partner-approved removal, emergency removal, and approved
+removal cancellation are separate scenarios. Capture and record each one
 individually; do not combine several actions into one sample. Lifecycle
 commands require `--acknowledge-disposable-device`.
 

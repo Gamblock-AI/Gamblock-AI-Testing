@@ -77,7 +77,7 @@ class RunEvaluationReportTest(unittest.TestCase):
             list(config["client_runtime"]),
         )
         self.assertEqual(
-            ["chrome", "edge", "brave", "firefox"],
+            ["chrome", "edge", "brave", "firefox", "samsung_internet", "xiaomi_browser"],
             config["client_runtime"]["cross_platform_browser_support_regression"]["required_browsers"]["android"],
         )
         browser_target = config["client_runtime"]["cross_platform_browser_support_regression"]
@@ -153,7 +153,7 @@ class RunEvaluationReportTest(unittest.TestCase):
                         "required_platforms": ["android"],
                         "optional_platforms": ["windows"],
                         "required_browsers": {
-                            "android": ["chrome", "edge", "brave", "firefox"],
+                            "android": ["chrome", "edge", "brave", "firefox", "samsung_internet", "xiaomi_browser"],
                             "windows": ["chrome", "edge", "brave", "opera", "firefox"],
                         },
                         "samples_per_class_per_browser": 5,
@@ -166,7 +166,7 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertIn("not as an unresolved Flutter code defect", report)
         self.assertIn("## Cross-platform browser support regression", report)
         self.assertIn("browser_required", report)
-        self.assertIn("Chrome, Edge, Brave, Firefox", report)
+        self.assertIn("Chrome, Edge, Brave, Firefox, Samsung Internet, Xiaomi Browser", report)
         self.assertIn("Windows VM", report)
         self.assertIn("optional", report)
 

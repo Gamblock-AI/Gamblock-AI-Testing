@@ -74,9 +74,10 @@ boundary are in [`../docs/ai/pkm-usability-testing.md`](../docs/ai/pkm-usability
 ## Cross-platform browser support regression
 
 This contract requires one Android device. Android covers Chrome, Edge, Brave,
-and Firefox; Windows coverage for Chrome, Edge, Brave, Opera, and Firefox is
-optional and non-gating. Each browser runs 5 non-gambling and 5 gambling
-fixtures, expecting `allow` and `intervention` respectively.
+Firefox, Samsung Internet, and Xiaomi Browser; Windows coverage for Chrome,
+Edge, Brave, Opera, and Firefox is optional and non-gating. Each browser runs 5
+non-gambling and 5 gambling fixtures, expecting `allow` and `intervention`
+respectively.
 
 The existing Chrome-only Windows helper is not sufficient evidence for this
 matrix. Runtime evidence is evaluated from the required Android matrix; Windows

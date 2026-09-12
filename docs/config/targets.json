@@ -50,7 +50,7 @@
       "samples_per_class_per_browser": 5,
       "classes": ["gambling", "non_gambling"],
       "required_browsers": {
-        "android": ["chrome", "edge", "brave", "firefox"],
+        "android": ["chrome", "edge", "brave", "firefox", "samsung_internet", "xiaomi_browser"],
         "windows": ["chrome", "edge", "brave", "opera", "firefox"]
       },
       "expected_outcomes": {
@@ -74,6 +74,14 @@
         "aggregate_files": ["summary.json", "samples.jsonl"]
       }
     }
+  },
+  "anti_uninstall": {
+    "platform": "android",
+    "product_flavor": "research",
+    "matrix_file": "flutter/config/device-matrix.json",
+    "manual_system_ui_required": true,
+    "required_result": "passed",
+    "ordinary_apk_oem_limitations_remain_failures": true
   },
   "pattern_interrupt": {
     "duration_seconds_min": 5,

@@ -26,7 +26,7 @@ python3 docs/tools/run_evaluation.py \
 
 The Flutter report tracks the cross-platform browser-support runtime contract.
 Android is required and Windows is optional/non-gating. It requires one Android
-device, four Android browsers, and optionally five Windows browsers;
+device, six Android browsers, and optionally five Windows browsers;
 the existing Chrome-only Windows helper is not sufficient evidence. The runner
 does not simulate either runtime.
 

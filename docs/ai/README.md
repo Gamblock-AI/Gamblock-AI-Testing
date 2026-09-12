@@ -1,6 +1,6 @@
 # Testing Repository AI Context
 
-Context version: `2026-09-06.2`
+Context version: `2026-09-13.2`
 
 This repository is the canonical owner of Gamblock-AI cross-repository test
 orchestration and public evidence. It does not own product runtime code.
@@ -14,7 +14,7 @@ orchestration and public evidence. It does not own product runtime code.
 | Phase 4 latency validation | Implemented tooling | Requires privacy-safe JSONL and renders feasibility plus the current `researchRelease` Android/Chrome progress-demo. The former final-readiness latency gate is replaced by the browser-support runtime contract. |
 | Structured usability + SUS | Planned protocol | Requires campus/authority confirmation before recruitment; only approved aggregates may later be disclosed. |
 | Android anti-uninstall matrix | Harness implemented; OEM runtime coverage pending | Manual system UI and lifecycle actions are recorded only after explicit device execution. The device register is provenance metadata, not a separate test or evidence result. |
-| Cross-platform browser support regression | Contract and public-cell validator implemented; Android runtime recorded; optional Windows runtime not run | One required Android device covers Chrome, Edge, Brave, and Firefox; optional Windows coverage uses Chrome, Edge, Brave, Opera, and Firefox with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
+| Cross-platform browser support regression | Contract and public-cell validator implemented; Android runtime passed and recorded for all required browsers; optional Windows runtime not run | One required Android device covers Chrome, Edge, Brave, Firefox, Samsung Internet, and Xiaomi Browser; optional Windows coverage uses Chrome, Edge, Brave, Opera, and Firefox with 5 gambling + 5 non-gambling fixtures per browser; expected outcomes are intervention and allow. |
 | Component verification | Orchestrated | Component repositories remain owners of their unit tests and lint checks; the website check includes the complete Vitest and Playwright E2E suites. |
 | Per-technology reports | Implemented | Each technology owns only `<technology>/report.md`; `docs/testing-index.md` is link-only. Every explicit run also requires a final test receipt, without creating another report. |
 
@@ -34,6 +34,7 @@ orchestration and public evidence. It does not own product runtime code.
 12. `docs/config/targets.json` — the single active machine-readable target contract.
 13. `../context/progress-targets.md` — umbrella current target contract and evidence boundary.
 14. `docs/ai/client-runtime-evidence.md` — Flutter client-runtime platform/browser/case folder contract.
+15. `docs/ai/windows-removal-testing.md` — Windows standard-user removal and administrator break-glass runbook.
 
 The test implementation is separated by system: `flutter/`, `golang/`,
 `next/`, `browser-extention/`, and `windows/` describe or contain system-specific checks;

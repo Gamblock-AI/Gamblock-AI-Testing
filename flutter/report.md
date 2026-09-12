@@ -66,9 +66,9 @@ Service and cross-OEM interpretation are maintained in
 
 | Status | Android device | Windows VM | Android browsers | Windows browsers | Samples per browser | Expected result | Reason |
 |---|---:|---:|---|---|---:|---|---|
-| passed | 1 | optional (not_run) | Chrome, Edge, Brave, Firefox | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | All required Android browser cells passed; optional Windows coverage was not executed. |
+| passed | 1 | optional (not_run) | Chrome, Edge, Brave, Firefox, Samsung Internet, Xiaomi Browser | Chrome, Edge, Brave, Opera, Firefox | 5 gambling + 5 non-gambling | non-gambling: allow; gambling: intervention | all browser cells complete and expected outcomes observed |
 
-Android browser cells are required; Windows browser cells are optional and non-gating. Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
+Android is the required platform. Windows evidence is optional and non-gating when present. Each browser is evaluated for allow on non-gambling fixtures and intervention on gambling fixtures. This is functional browser-support evidence, not latency evidence or anti-uninstall evidence.
 
 
 ## Component checks

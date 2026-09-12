@@ -20,6 +20,8 @@
     "process_kill",
     "reboot",
     "valid_grant_removal",
+    "emergency_grant_removal",
+    "cancelled_valid_grant_removal",
     "invalid_grant_removal",
     "other_app_uninstall"
   ],

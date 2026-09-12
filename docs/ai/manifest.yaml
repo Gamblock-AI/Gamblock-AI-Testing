@@ -1,5 +1,5 @@
 schema_version: 1
-context_version: "2026-09-06.2"
+context_version: "2026-09-13.2"
 component: testing
 scope: repository
 source_of_truth: AGENTS.md
@@ -45,6 +45,7 @@ required_context:
   - docs/ai/android-device-run-checklist.md
   - docs/ai/android-phase4-latency-testing.md
   - docs/ai/client-runtime-evidence.md
+  - docs/ai/windows-removal-testing.md
   - docs/ai/testing-run-receipt.md
   - docs/ai/pkm-usability-testing.md
   - docs/ai/manifest.yaml
