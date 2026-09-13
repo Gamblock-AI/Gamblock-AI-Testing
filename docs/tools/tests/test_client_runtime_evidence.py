@@ -155,6 +155,52 @@ class ClientRuntimeEvidenceTest(unittest.TestCase):
         self.assertEqual("pending", result["status"])
         self.assertEqual(1, result["missing_cells"])
 
+    def test_current_source_capabilities_are_required_when_configured(self):
+        target = browser_target()
+        target["required_capabilities"] = [
+            "dynamic_standalone_browser_discovery",
+            "generic_tree_then_local_ocr_sensing",
+            "committed_standalone_surface_gating",
+            "opaque_browser_explanation_before_home",
+            "native_activity_explanation_fallback",
+        ]
+        target["evidence"]["capability_summary"] = "android/capabilities/summary.json"
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "flutter/evidence/client-runtime/cross_platform_browser_support_regression"
+            write_browser_cell(root, "android", "chrome", "gambling", ["intervention", "intervention"])
+            write_browser_cell(root, "android", "chrome", "non_gambling", ["allow", "allow"])
+            pending_result = MODULE.aggregate_client_runtime(
+                "cross_platform_browser_support_regression",
+                target,
+                pathlib.Path(directory),
+            )
+            write_json(
+                root / "android/capabilities/summary.json",
+                {
+                    "schema_version": 1,
+                    "test": "cross_platform_browser_support_regression",
+                    "platform": "android",
+                    "device_alias": "android_lab_01",
+                    "build_mode": "release",
+                    "product_flavor": "research",
+                    "artifact": "researchRelease",
+                    "run_id": "run_1",
+                    "status": "passed",
+                    "dynamic_standalone_browser_discovery": True,
+                    "generic_tree_then_local_ocr_sensing": True,
+                    "committed_standalone_surface_gating": True,
+                    "opaque_browser_explanation_before_home": True,
+                    "native_activity_explanation_fallback": True,
+                },
+            )
+            passed_result = MODULE.aggregate_client_runtime(
+                "cross_platform_browser_support_regression",
+                target,
+                pathlib.Path(directory),
+            )
+        self.assertEqual("pending", pending_result["status"])
+        self.assertEqual("passed", passed_result["status"])
+
     def test_public_schema_rejects_browsing_fields(self):
         errors = MODULE._forbidden_values({"actual_outcome": "allow", "url": "https://invalid.example"}, "sample")
         self.assertTrue(any("forbidden" in error or "URL-like" in error for error in errors))

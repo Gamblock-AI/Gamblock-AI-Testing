@@ -65,6 +65,17 @@ BROWSER_SUMMARY_FIELDS = COMMON_SUMMARY_FIELDS | {
     "passed_sample_count",
 }
 BROWSER_SAMPLE_FIELDS = COMMON_SAMPLE_FIELDS | {"expected_outcome", "actual_outcome"}
+CAPABILITY_SUMMARY_FIELDS = {
+    "schema_version",
+    "test",
+    "platform",
+    "device_alias",
+    "build_mode",
+    "product_flavor",
+    "artifact",
+    "run_id",
+    "status",
+}
 
 
 def pending(name: str, reason: str, **extra: Any) -> dict[str, Any]:
@@ -120,6 +131,57 @@ def _cell_path(root: Path, cell: dict[str, str]) -> Path:
         parts.append(cell["browser"])
     parts.append(cell["case"])
     return root.joinpath(*parts)
+
+
+def _validate_capability_summary(
+    root: Path,
+    test_name: str,
+    target: dict[str, Any],
+) -> dict[str, Any]:
+    required = target.get("required_capabilities", [])
+    if not required:
+        return {"status": "not_required", "reason": "no capability summary required"}
+    relative = target.get("evidence", {}).get("capability_summary")
+    if not isinstance(relative, str) or not relative.endswith("summary.json"):
+        return {"status": "failed", "reason": "target has an invalid capability summary path"}
+    path = root / relative
+    if not path.is_file():
+        return {"status": "pending", "reason": "current-source capability summary is missing"}
+    value, error = _read_json(path)
+    if error is not None or not isinstance(value, dict):
+        return {"status": "failed", "reason": f"capability summary is invalid: {error or 'not an object'}"}
+    errors = _forbidden_values(value, str(path))
+    expected_fields = CAPABILITY_SUMMARY_FIELDS | set(required)
+    unexpected = set(value) - expected_fields
+    missing = expected_fields - set(value)
+    if unexpected:
+        errors.append(f"{path}: unexpected fields {sorted(unexpected)}")
+    if missing:
+        errors.append(f"{path}: missing fields {sorted(missing)}")
+    if value.get("schema_version") != SCHEMA_VERSION:
+        errors.append(f"{path}: schema_version must be {SCHEMA_VERSION}")
+    if value.get("test") != test_name or value.get("platform") != "android":
+        errors.append(f"{path}: test/platform does not match the Android target")
+    required_artifact = _required_artifact(target, "android")
+    if value.get("build_mode") not in target.get("required_build_modes", []):
+        errors.append(f"{path}: build_mode does not match target")
+    for field in ("product_flavor", "artifact"):
+        if value.get(field) != required_artifact.get(field):
+            errors.append(f"{path}: {field} does not match target")
+    for field in ("device_alias", "run_id"):
+        if not _safe_label(value.get(field)):
+            errors.append(f"{path}: {field} must be an ASCII label")
+    for capability in required:
+        if value.get(capability) is not True:
+            errors.append(f"{path}: {capability} must be true")
+    if value.get("status") != "passed":
+        errors.append(f"{path}: status must be passed")
+    return {
+        "status": "failed" if errors else "passed",
+        "reason": "; ".join(errors) if errors else "all current-source capabilities observed",
+        "device_alias": value.get("device_alias"),
+        "run_id": value.get("run_id"),
+    }
 
 
 def _read_json(path: Path) -> tuple[Any | None, str | None]:
@@ -420,6 +482,22 @@ def aggregate_client_runtime(test_name: str, target: dict[str, Any], testing_roo
             result["device_aliases"] = sorted(aliases)
             return result
 
+    capability = _validate_capability_summary(root, test_name, target)
+    result["capability_evidence"] = capability
+    if capability["status"] == "failed":
+        result["status"] = "failed"
+        result["reason"] = capability["reason"]
+        return result
+    if capability["status"] == "pending":
+        result["reason"] = capability["reason"]
+        return result
+    if capability["status"] == "passed" and capability.get("device_alias") not in {
+        alias for aliases in aliases_by_platform.values() for alias in aliases
+    }:
+        result["status"] = "failed"
+        result["reason"] = "capability summary device does not match browser evidence"
+        return result
+
     failed_samples = browser_failed_samples(required_cells)
     result["failed_sample_count"] = failed_samples
     result["status"] = "passed" if failed_samples == 0 else "failed"
@@ -437,10 +515,13 @@ def validate_client_runtime_root(root: Path, test_name: str, target: dict[str, A
         _cell_path(root, cell).relative_to(root)
         for cell in _expected_cells(test_name, target, include_optional=True)
     }
+    capability_summary = target.get("evidence", {}).get("capability_summary")
     for path in root.rglob("*"):
         if path.is_dir():
             continue
         relative = path.relative_to(root)
+        if isinstance(capability_summary, str) and relative == Path(capability_summary):
+            continue
         if relative.name not in {"summary.json", "samples.jsonl"} or relative.parent not in expected_paths:
             errors.append(f"{path}: unexpected client-runtime evidence file")
     aggregate = aggregate_client_runtime(test_name, target, root.parents[3])

@@ -35,7 +35,7 @@ measurement.
   executable/channel (`chrome`, `edge`, `brave`, `opera`, and `firefox`);
 - optional `GamblockAIProtection` Windows service installed from the current app
   bundle and able to load the current protection assets;
-- required Android device with the six configured Android browsers installed;
+- required Android device with the seven configured Android browsers installed;
 - the model, app, extension, and testing checkouts at the workspace paths.
 
 The existing Playwright helper is a Chrome-only development harness and is not

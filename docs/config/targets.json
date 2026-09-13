@@ -57,6 +57,14 @@
         "gambling": "intervention",
         "non_gambling": "allow"
       },
+      "required_capabilities": [
+        "dynamic_standalone_browser_discovery",
+        "generic_tree_then_local_ocr_sensing",
+        "committed_standalone_surface_gating",
+        "opaque_browser_explanation_before_home",
+        "native_activity_explanation_fallback"
+      ],
+      "source_change_policy": "Browser-runtime evidence predating a sensing implementation change remains historical and must not verify the changed source commit.",
       "required_artifacts_by_platform": {
         "android": {
           "product_flavor": "research",
@@ -69,6 +77,7 @@
       },
       "evidence": {
         "root": "flutter/evidence/client-runtime/cross_platform_browser_support_regression",
+        "capability_summary": "android/capabilities/summary.json",
         "path_template": "<platform>/<browser>/<case>",
         "required_case_directories": ["gambling", "non_gambling"],
         "aggregate_files": ["summary.json", "samples.jsonl"]

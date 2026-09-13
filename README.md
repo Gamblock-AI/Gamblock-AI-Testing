@@ -44,7 +44,10 @@ from component unit-check output.
 The Flutter browser-support evaluation uses platform/browser/case subfolders
 under `flutter/evidence/client-runtime/`. Android is required; Windows is
 optional and non-gating. The current Android evidence is recorded and the
-optional Windows matrix is not run. See
+optional Windows matrix is not run. Those browser cells predate the current
+dynamic-discovery and committed-standalone surface-gating implementation, so a
+reduced Android capability summary is now required before the changed source
+can pass. See
 [`docs/ai/client-runtime-evidence.md`](docs/ai/client-runtime-evidence.md) for
 the fixed layout and privacy-safe file contract.
 

@@ -27,6 +27,7 @@ case:
 ```text
 flutter/evidence/client-runtime/cross_platform_browser_support_regression/
 ├── android/<browser>/<case>/{summary.json,samples.jsonl}
+├── android/capabilities/summary.json
 └── windows/<browser>/<case>/{summary.json,samples.jsonl}
 ```
 
@@ -97,6 +98,22 @@ that each browser is already supported by the product. A browser remains unverif
 until its complete cell passes; product support gaps must be recorded as a
 runtime failure or an explicit implementation gap, never inferred from the
 matrix declaration.
+Evidence recorded before a browser-sensing implementation change remains
+historical. The current Android source additionally requires a device trace
+showing dynamic standalone-browser discovery; no classification, OCR, or
+opaque-failure count on Custom Tab, internal, transient, or unknown surfaces;
+a user-visible explanation frame before Home when an intentionally opaque
+browser fixture is restricted; and a native Activity explanation if overlay
+presentation is unavailable. If neither full-screen explanation can be
+presented, Home must not be dispatched.
+The reduced public capability summary contains only schema/test/platform,
+opaque device/run labels, build/product/artifact labels, `status=passed`, and
+five booleans: `dynamic_standalone_browser_discovery`,
+`generic_tree_then_local_ocr_sensing`,
+`committed_standalone_surface_gating`,
+`opaque_browser_explanation_before_home`, and
+`native_activity_explanation_fallback`. It contains no browser package, URL,
+page text, screenshot, or raw trace.
 
 These folders are not alternate reports. The single canonical result remains
 [`flutter/report.md`](../../flutter/report.md), which summarizes all valid

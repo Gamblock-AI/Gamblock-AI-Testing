@@ -41,8 +41,11 @@ receipt is not a second report and is not committed by default.
   latency procedure, and shared new-device checklist are separate runbooks;
   all existing runtime ledgers remain grouped by stable device alias. The
   browser-support evaluation uses the platform/browser/case evidence layout;
-  Android is required and Windows is optional/non-gating. The current Android
-  evidence is recorded; optional Windows evidence may be added later.
+  Android is required and Windows is optional/non-gating. The seven-browser
+  Android evidence remains recorded as historical evidence, while the newer
+  dynamic-discovery/generic-OCR/opaque-browser source requires a fresh reduced
+  capability summary before the current source can pass; optional Windows
+  evidence may be added later.
 - `golang/`, `next/`, and `browser-extention/` own the test entrypoint documentation for
   the Go backend, Next.js website, and browser extension respectively. Their
   source and production tests remain in the component repositories.
