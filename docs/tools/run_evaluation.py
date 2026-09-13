@@ -37,6 +37,7 @@ COMPONENT_CHECK_NAMES = {
     "flutter": {
         "testing_flutter_unit",
         "client_python_contract_unit",
+        "android_research_unit",
         "flutter_pattern_interrupt_unit",
     },
     "backend": {"backend_unit", "backend_integration"},
@@ -432,6 +433,7 @@ def run_code_checks(
         ("website_e2e", ["npm", "run", "e2e"], workspace_root / "gamblock-ai-website"),
         ("backend_unit", ["make", "test"], workspace_root / "gamblock-ai-backend"),
         ("client_python_contract_unit", [sys.executable, "-m", "unittest", "discover", "-s", "test/scripts", "-p", "*test.py"], workspace_root / "gamblock_ai_apps"),
+        ("android_research_unit", ["./gradlew", "testResearchDebugUnitTest"], workspace_root / "gamblock_ai_apps" / "android"),
     ]
     if include_flutter and (selected_names is None or "flutter_pattern_interrupt_unit" in selected_names):
         commands.append(("flutter_pattern_interrupt_unit", ["flutter", "test", "test/features/pattern_interrupt"], workspace_root / "gamblock_ai_apps"))

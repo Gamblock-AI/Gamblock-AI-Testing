@@ -75,7 +75,15 @@ REQUIRED_FIELDS = {
 }
 
 ENUMS = {
-    "oem_family": {"aosp", "samsung", "xiaomi_redmi", "oppo_realme", "vivo", "other"},
+    "oem_family": {
+        "aosp",
+        "samsung",
+        "xiaomi_redmi",
+        "oppo_realme",
+        "vivo",
+        "transsion",
+        "other",
+    },
     "flavor": {"research"},
     "build_mode": {"debug", "profile", "release"},
     "scenario": {

@@ -77,6 +77,7 @@ Android is the required platform. Windows evidence is optional and non-gating wh
 |---|---|
 | testing_flutter_unit | passed |
 | client_python_contract_unit | passed |
+| android_research_unit | passed |
 | flutter_pattern_interrupt_unit | passed |
 
 ## Interpretation limits

@@ -95,6 +95,7 @@ class RunEvaluationReportTest(unittest.TestCase):
             {
                 "testing_flutter_unit",
                 "client_python_contract_unit",
+                "android_research_unit",
                 "flutter_pattern_interrupt_unit",
             },
             RUNNER.check_names_for_components(["flutter"]),
@@ -116,6 +117,7 @@ class RunEvaluationReportTest(unittest.TestCase):
             [
                 "testing_flutter_unit",
                 "client_python_contract_unit",
+                "android_research_unit",
                 "flutter_pattern_interrupt_unit",
             ],
             [check["name"] for check in checks],
@@ -127,6 +129,14 @@ class RunEvaluationReportTest(unittest.TestCase):
         self.assertEqual(
             ["flutter", "test", "test/features/pattern_interrupt"],
             flutter_call.args[1],
+        )
+        android_call = next(
+            call for call in run_command.call_args_list
+            if call.args[0] == "android_research_unit"
+        )
+        self.assertEqual(
+            ["./gradlew", "testResearchDebugUnitTest"],
+            android_call.args[1],
         )
 
     def test_flutter_report_renders_client_runtime_contracts(self):

@@ -6,7 +6,8 @@
     "samsung",
     "xiaomi_redmi",
     "oppo_realme",
-    "vivo"
+    "vivo",
+    "transsion"
   ],
   "scenarios": [
     "setup",

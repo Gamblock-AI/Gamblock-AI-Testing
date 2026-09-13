@@ -56,7 +56,7 @@ Current interpretation:
   during this run, so the device remains in the anti-uninstall retest queue.
 - Samsung Galaxy A14 had a device-reservation attempt that did not complete.
   It is an operational setup note only, not a test result.
-- Samsung, Xiaomi/Redmi, OPPO/Realme, and Vivo coverage remains incomplete
+- Samsung, Xiaomi/Redmi, OPPO/Realme, Vivo, and Transsion coverage remains incomplete
   until validated device/scenario records exist.
 
 ## Scope limitation: standard Android Research APK
@@ -123,6 +123,6 @@ copied to the public repository. A missing or informal observation remains
 
 The current Pixel evidence demonstrates behavior only for its recorded AOSP
 system context. It does not establish compatibility for Xiaomi/Redmi,
-Samsung, OPPO/Realme, or Vivo. OEM coverage must be expanded through the
+Samsung, OPPO/Realme, Vivo, or Transsion. OEM coverage must be expanded through the
 matrix in [`flutter/config/device-matrix.json`](../../flutter/config/device-matrix.json)
 and reviewed one device/scenario cell at a time.

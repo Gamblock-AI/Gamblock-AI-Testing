@@ -89,7 +89,7 @@ require_common_identity() {
   require_label "--run-id" "$run_id"
   require_label "--sample-id" "$sample_id"
   require_label "--device-alias" "$device_alias"
-  require_enum "--oem-family" "$oem_family" " aosp samsung xiaomi_redmi oppo_realme vivo other"
+  require_enum "--oem-family" "$oem_family" " aosp samsung xiaomi_redmi oppo_realme vivo transsion other"
   [[ "$android_api" =~ ^[0-9]+$ && "$android_api" -ge 21 && "$android_api" -le 99 ]] ||
     die "--android-api must be an integer between 21 and 99"
   require_enum "--build-mode" "$build_mode" " debug profile release"

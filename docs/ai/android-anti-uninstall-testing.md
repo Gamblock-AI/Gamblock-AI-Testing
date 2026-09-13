@@ -35,6 +35,12 @@ The required OEM families and scenario list are versioned in
 [`flutter/config/device-matrix.json`](../../flutter/config/device-matrix.json). A missing
 scenario is `pending`, never `passed`.
 
+The matrix uses six explicit OEM families: AOSP/Pixel, Samsung, Xiaomi/Redmi,
+OPPO/realme/OnePlus, vivo/iQOO, and Transsion (Infinix/TECNO/itel). A package
+alias or source-level unit test does not satisfy a family cell; each family
+still requires a signed Research-release observation on a representative
+device.
+
 Runtime health is recorded inside every anti-uninstall sample rather than as
 a separate Android runtime test. The baseline and after-state must include the
 native protection service, Device Admin, Accessibility, package presence, and

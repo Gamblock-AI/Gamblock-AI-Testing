@@ -49,6 +49,12 @@ class AndroidTamperReportTest(unittest.TestCase):
     def test_valid_unapproved_removal_record(self):
         self.assertEqual(REPORT.validate_record(sample(), "evidence", 1), [])
 
+    def test_accepts_transsion_oem_family(self):
+        self.assertEqual(
+            REPORT.validate_record(sample(oem_family="transsion"), "evidence", 1),
+            [],
+        )
+
     def test_rejects_browsing_fields(self):
         errors = REPORT.validate_record(sample(url="https://never-record.invalid"), "evidence", 1)
         self.assertTrue(any("privacy allowlist" in error for error in errors))

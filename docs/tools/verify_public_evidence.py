@@ -65,7 +65,15 @@ DEVICE_REGISTER_FIELDS = {
     "retest_required",
 }
 DEVICE_REGISTER_ENUMS = {
-    "oem_family": {"aosp", "samsung", "xiaomi_redmi", "oppo_realme", "vivo", "other"},
+    "oem_family": {
+        "aosp",
+        "samsung",
+        "xiaomi_redmi",
+        "oppo_realme",
+        "vivo",
+        "transsion",
+        "other",
+    },
     "source": {"firebase_test_lab", "local_physical_device"},
     "service": {"firebase_test_lab_android_device_streaming", "local_physical_device"},
     "access_path": {"android_studio_remote_devices", "local_adb"},
