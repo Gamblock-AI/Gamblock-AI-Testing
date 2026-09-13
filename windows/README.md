@@ -38,8 +38,11 @@ measurement.
 - required Android device with the seven configured Android browsers installed;
 - the model, app, extension, and testing checkouts at the workspace paths.
 
-The existing Playwright helper is a Chrome-only development harness and is not
-yet sufficient to satisfy this cross-platform browser contract. Playwright's bundled
+The existing Playwright helper is a retired Chrome-only development harness.
+It no longer connects directly to the service pipe because production IPC
+admits only the exact service-launched authenticated user agent. It reports
+`trusted_agent_ipc_requires_external_observation_harness` instead of weakening
+that boundary. Playwright's bundled
 Chromium/Firefox engines are not evidence for branded Chrome, Edge, Brave, or
 Opera; the future runner must launch and record only the configured browser
 identity. A multi-browser runner, including the Firefox adapter, is still
